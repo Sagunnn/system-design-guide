@@ -1,0 +1,16 @@
+---
+permalink: /search.json
+eleventyExcludeFromCollections: true
+---
+[
+{%- for item in collections.topics.concat(collections.practice) %}
+  {
+    "title": {{ item.data.title | dump | safe }},
+    "url": "{{ item.url }}",
+    "section": "{{ 'Fundamentals' if 'topic' in item.data.tags else 'Practice' }}",
+    "summary": {{ item.data.summary | dump | safe }},
+    "headings": {{ (item.templateContent | headingsText | lower) | dump | safe }},
+    "text": {{ (item.templateContent | plain | lower | truncate(6000, true, '')) | dump | safe }}
+  }{% if not loop.last %},{% endif %}
+{%- endfor %}
+]

@@ -1,0 +1,150 @@
+front,back,topic
+What are the seven steps of the system design interview framework?,Requirements → estimates → API → data model → high-level design → deep dives → wrap-up.,The interview framework
+Functional vs non-functional requirements?,"Functional = what the system does (features). Non-functional = how well it does it: scale, latency, availability, consistency, durability.",The interview framework
+What are interviewers mainly scoring?,"Reasoning: clarifying requirements, using numbers, comparing options, stating trade-offs, handling failure, and communicating clearly.",The interview framework
+A good one-sentence trade-off template?,"""X gives us A at the cost of B; given our requirement for C, I'd pick X.""",The interview framework
+"What should the high-level design start with, and when do you add components?","Client → load balancer → stateless app servers → database. Add caches, queues, CDNs etc. only when a requirement or estimate demands them.",The interview framework
+Seconds in a day (rounded for quick maths)?,"86,400 ≈ 10⁵.",Estimation
+How do you get average QPS from daily requests? And peak?,QPS ≈ requests per day ÷ 10⁵. Peak is usually 2–3× the average.,Estimation
+Memory reference vs SSD random read vs cross-continent round trip?,~100 ns vs ~100 µs vs ~150 ms.,Estimation
+Storage estimate formula?,New items per day × item size × retention (× replication factor).,Estimation
+What's 2³⁰ and 2⁴⁰ in round numbers?,"~10⁹ (a billion, GB) and ~10¹² (a trillion, TB).",Estimation
+Why estimate at all in an interview?,"To find which parts are hard (orders of magnitude) and justify design choices like caching, sharding or a CDN.",Estimation
+"What does DNS do, and what is a TTL?",Maps names to IP addresses. A TTL says how long resolvers and clients may cache the answer.,Networking basics
+TCP vs UDP?,"TCP: reliable, ordered, congestion-controlled. UDP: no handshake or retransmits: lower latency, packets may be lost (video calls, games, DNS, QUIC).",Networking basics
+"What does HTTP/3 run on, and why?",QUIC over UDP: avoids TCP head-of-line blocking and sets up connections faster.,Networking basics
+Forward proxy vs reverse proxy?,"Forward acts for clients (egress filtering). Reverse acts for servers: TLS termination, caching, routing, hiding topology.",Networking basics
+HTTP 429 and 503 mean…?,429 Too Many Requests (rate limited). 503 Service Unavailable.,Networking basics
+Vertical vs horizontal scaling?,"Vertical: a bigger machine (simple, has a ceiling, single point of failure). Horizontal: more machines behind a load balancer (near-unlimited, needs stateless services).",Scaling basics
+"What makes a service stateless, and why does it matter?",No per-user state in server memory: any instance can serve any request. It's what enables horizontal scaling and autoscaling.,Scaling basics
+Where does session state go in a stateless design?,"A shared store (Redis/Memcached), signed client tokens (JWT), or the database.",Scaling basics
+Typical order for scaling a database tier?,Vertical scaling → caching → read replicas → sharding.,Scaling basics
+Downside of JWT session tokens?,Hard to revoke before expiry: needs a deny-list or short lifetimes.,Scaling basics
+Layer 4 vs layer 7 load balancing?,"L4 routes by IP/port: fast, content-blind. L7 reads HTTP: route by path or header, retries, caching, TLS termination.",Load balancing
+"Which algorithm suits long-lived, uneven connections?",Least connections.,Load balancing
+What are health checks for?,Periodically probing servers and removing unhealthy ones from rotation automatically.,Load balancing
+Why avoid sticky sessions?,"Uneven load, and lost sessions when that server dies. Prefer stateless servers.",Load balancing
+How do you stop the load balancer being a single point of failure?,"Run a redundant pair (active–passive with a virtual IP, or active–active behind DNS/anycast), or use a managed balancer.",Load balancing
+GeoDNS vs anycast?,GeoDNS returns the nearest region's IP. Anycast advertises one IP from many locations and the network routes to the closest.,Load balancing
+Explain cache-aside (lazy loading).,"Read the cache; on a miss read the DB, then write the result to the cache with a TTL. The default read strategy.",Caching
+Write-through vs write-back?,"Write-through: write cache + DB together (fresh, slower writes). Write-back: write cache, flush later (fast, risk of data loss).",Caching
+What is a cache stampede and how do you prevent it?,"Many requests miss on the same expired hot key at once. Fix: request coalescing or a per-key lock, early refresh, jittered TTLs.",Caching
+What is cache penetration?,"Requests for non-existent keys always miss and hit the DB. Fix: cache negative results, or put a Bloom filter in front.",Caching
+LRU vs LFU?,LRU evicts least recently used; LFU evicts least frequently used.,Caching
+Why delete the cache key on write instead of updating it?,Avoids races where concurrent writes leave an older value in the cache; the next read refills it.,Caching
+How do you handle a hot key?,Replicate it across cache nodes and/or add a small in-process cache in front.,Caching
+Pull CDN vs push CDN?,Pull: the edge fetches from the origin on the first miss. Push: you upload content to the CDN ahead of time.,CDNs
+What is an origin shield?,"A mid-tier cache between edges and the origin, so many edge misses become one origin request.",CDNs
+Why use versioned file names for static assets?,"Cache forever (immutable); a new deploy gets a new URL, so there's nothing to purge and no stale files.",CDNs
+Name three benefits of a CDN besides latency.,"Offloads origin bandwidth, absorbs spikes and DDoS, terminates TLS near users (also edge compute).",CDNs
+What does Cache-Control: no-store mean?,Never cache the response: use it for private or per-user data.,CDNs
+What does ACID stand for?,"Atomicity, Consistency, Isolation, Durability.",SQL vs NoSQL
+When is a relational database the right default?,"Related data, transactions and correctness matter (payments, orders, inventory), or ad-hoc queries are needed.",SQL vs NoSQL
+Name the main NoSQL families with an example each.,"Key-value (Redis, DynamoDB), document (MongoDB), wide-column (Cassandra), graph (Neo4j).",SQL vs NoSQL
+What should drive the choice of database?,"Access patterns: what you query, how often, at what scale and with what consistency.",SQL vs NoSQL
+Normalisation vs denormalisation?,"Normalised: store facts once, join on read. Denormalised: copy data where it's read for fast reads, at the cost of harder writes.",SQL vs NoSQL
+What is polyglot persistence?,"Using several data stores in one system, each matched to its access pattern.",SQL vs NoSQL
+What does an index turn a full table scan into?,A lookup: roughly O(n) → O(log n).,Indexes & storage engines
+B-tree in one sentence.,A balanced tree of sorted pages updated in place: fast reads and range scans; the default in SQL databases.,Indexes & storage engines
+How does an LSM-tree handle writes?,Append to a WAL + in-memory memtable → flush to immutable SSTables → compact in the background. Very fast writes.,Indexes & storage engines
+What speeds up LSM-tree reads?,"Bloom filters, which skip SSTables that can't contain the key.",Indexes & storage engines
+The leftmost prefix rule?,"A composite index on (a, b) serves queries on a or on a + b, but not on b alone.",Indexes & storage engines
+The cost of adding an index?,Slower writes (every insert updates every index) and more storage.,Indexes & storage engines
+Three reasons to replicate data?,"Fault tolerance, read scaling, lower latency (copies near users).",Replication
+Synchronous vs asynchronous replication?,"Sync: no acknowledged write is lost, but writes are slower. Async: fast, but recent writes can be lost on failover, and followers lag.",Replication
+What is the read-your-writes problem and fix?,A user doesn't see their own write because a lagging replica served the read. Fix: read their recent writes from the leader.,Replication
+Quorum condition in leaderless replication?,W + R > N: every read overlaps at least one replica holding the latest write.,Replication
+Main risk of multi-leader replication?,"Write conflicts: resolve with last-write-wins, merging, or CRDTs.",Replication
+What is hinted handoff?,"While a replica is down, another node keeps its writes and hands them over when it returns.",Replication
+Replication vs sharding?,Replication copies the same data; sharding splits different data across machines.,Sharding
+Range vs hash sharding?,"Range keeps order (good scans, hotspot risk with sequential keys). Hash spreads evenly (no range scans).",Sharding
+Properties of a good shard key?,"High cardinality, even load, and matching the main query so most requests hit one shard.",Sharding
+Why is hash(key) mod N a problem?,Changing N remaps almost every key. Use consistent hashing.,Sharding
+What does sharding make harder?,"Cross-shard queries and joins, distributed transactions, resharding, global unique IDs.",Sharding
+How do you plan for resharding?,"Use many small virtual shards mapped onto fewer machines, so you move whole virtual shards.",Sharding
+How does consistent hashing assign keys?,Nodes and keys are hashed onto a ring; each key belongs to the next node clockwise.,Consistent hashing
+How many keys move when a node joins or leaves?,About K/N: only the neighbouring arc's keys.,Consistent hashing
+What are virtual nodes for?,"Each server gets many ring positions: even load, a failed node's keys spread widely, weighting for bigger machines.",Consistent hashing
+Where is consistent hashing used?,"Distributed caches, Cassandra/DynamoDB partitioning, key-based load balancing, CDNs.",Consistent hashing
+State the CAP theorem precisely.,"During a network partition, a distributed store must choose between consistency and availability.",CAP & consistency
+"Why isn't ""CA"" a real option?",Partitions happen in any real network; you can't opt out of P.,CAP & consistency
+Give a CP and an AP example use case.,"CP: payments, inventory, locks (ZooKeeper, etcd). AP: feeds, likes, carts (Cassandra, DynamoDB).",CAP & consistency
+What does PACELC add?,"Else, without a partition, you still trade latency vs consistency.",CAP & consistency
+Linearizability means…?,Every read sees the latest write: the system behaves like a single up-to-date copy.,CAP & consistency
+"Order these from strongest to weakest: eventual, strong, causal, read-your-writes.",Strong (linearizable) → causal → read-your-writes → eventual.,CAP & consistency
+Work queue vs pub/sub?,Queue: each message to one consumer. Pub/sub: each message to every subscriber.,Queues & streams
+What makes a log like Kafka different?,"Append-only, retained and replayable; consumers track offsets; ordered within a partition.",Queues & streams
+"What delivery guarantee do most systems give, and the consequence?","At-least-once, so consumers must be idempotent.",Queues & streams
+How do you get ordering for one entity's events?,"Use its ID as the partition key, so its events land in one partition.",Queues & streams
+What is a dead-letter queue?,"Where messages go after N failed attempts, so they don't block the queue and can be inspected.",Queues & streams
+Three reasons to add a queue?,"Decoupling, absorbing spikes (load levelling), and faster responses through async processing.",Queues & streams
+REST vs gRPC vs GraphQL: when to use each?,"REST for public CRUD APIs, gRPC for fast internal service calls, GraphQL for flexible client-driven queries.",APIs & real-time
+Cursor vs offset pagination?,Cursor is stable and fast for feeds; offset is slow deep in a list and shifts when items are inserted.,APIs & real-time
+What is an idempotency key?,A client-supplied key on a write; the server stores the result per key so retries don't repeat the action.,APIs & real-time
+WebSockets vs SSE?,"WebSockets: full-duplex, persistent. SSE: one-way server → client over HTTP, with auto-reconnect.",APIs & real-time
+What is long polling?,"The server holds a request open until data is ready or a timeout, then the client immediately asks again.",APIs & real-time
+What is a webhook?,A server-to-server callback: your system calls the subscriber's URL when an event happens.,APIs & real-time
+How does the token bucket work?,A bucket holds up to B tokens and refills at rate R; each request takes a token. It allows bursts up to B with average rate R.,Rate limiting
+Problem with fixed window counters?,Up to 2× the limit at window boundaries.,Rate limiting
+Sliding window counter in one line?,Current window count + previous window count × the fraction of overlap. Accurate with O(1) memory.,Rate limiting
+How do you make distributed limits race-free?,Atomic check-and-update in Redis: INCR/EXPIRE or a Lua script.,Rate limiting
+Fail open vs fail closed?,"If the limiter's store is down: open = allow (availability), closed = deny (protection). Choose per rule.",Rate limiting
+What response does a rate-limited client get?,"429 Too Many Requests with Retry-After and limit, remaining and reset headers.",Rate limiting
+Block vs file vs object storage?,"Block: raw disks for databases. File: shared filesystem. Object: PUT/GET whole objects by key over HTTP, huge and cheap (S3).",Blob storage
+What is a pre-signed URL?,"A time-limited signed URL allowing one upload or download directly to or from storage, bypassing your servers.",Blob storage
+Why multipart upload?,"Parallel parts, retry only failed parts, and resumable uploads for large files.",Blob storage
+Erasure coding vs replication?,Erasure coding (k data + m parity chunks) survives m losses at ~1.4× overhead; replication needs ~3×.,Blob storage
+What goes in the database vs object storage for media?,DB: metadata + the object key. Object storage: the bytes.,Blob storage
+Why not auto-increment IDs at scale?,Separate shards or regions would issue the same IDs; a central counter is a bottleneck.,Unique IDs
+Snowflake ID layout?,64 bits: 1 sign + 41 timestamp (ms) + 10 machine + 12 sequence bits.,Unique IDs
+UUID v4 vs UUID v7?,"v4: random, unordered (fragments B-trees). v7: timestamp-prefixed, time-sortable.",Unique IDs
+Main operational risk of Snowflake IDs?,"Clock going backwards (possible duplicates), and assigning unique machine IDs.",Unique IDs
+How do you make short codes for URLs?,Base62-encode a unique number (or hash): 7 characters ≈ 3.5 trillion combinations.,Unique IDs
+Why always set timeouts?,Without them a slow dependency ties up your threads and takes you down too.,Reliability patterns
+Exponential backoff with jitter: why jitter?,"Randomness spreads retries out, so clients don't retry in lockstep (retry storms).",Reliability patterns
+The three circuit breaker states?,Closed (calls pass) → Open (fail fast) → Half-open (trial calls) → closed or open again.,Reliability patterns
+What is the bulkhead pattern?,Isolate resources (thread or connection pools) per dependency so one failure can't exhaust everything.,Reliability patterns
+99.99% availability allows how much downtime per year?,About 53 minutes.,Reliability patterns
+The four golden signals?,"Latency, traffic, errors, saturation.",Reliability patterns
+Two 99.9% components in series vs in parallel?,Series ≈ 99.8%; parallel (redundant) ≈ 99.9999%.,Reliability patterns
+URL shortener: three ways to generate codes?,Hash the URL + collision check; unique counter (leased ranges) + base62; pre-generated key service (KGS).,URL shortener
+301 vs 302 for redirects?,"301 is cached by browsers (less load, loses analytics); 302 sends every click to you (accurate analytics).",URL shortener
+Why is the URL shortener a caching problem?,~100:1 reads to writes and a skewed popularity: cache-aside with LRU gives a 90%+ hit rate.,URL shortener
+How do you stop people enumerating sequential codes?,"Apply a bijective shuffle before base62, or use random codes from a KGS.",URL shortener
+Where do you enforce a distributed rate limiter?,"At the API gateway, with counters in a shared Redis cluster.",Rate limiter
+How do you avoid races between gateway nodes?,Do check-and-take atomically inside Redis with a Lua script.,Rate limiter
+How do you handle a very hot client in the rate limiter?,"A local pre-limiter per gateway (its share of the limit), consulting Redis only near the threshold.",Rate limiter
+Multi-region rate limits: two approaches?,"Per-region limits (simple, N× global) or async cross-region sync (closer to global, with lag).",Rate limiter
+Chat: how does the server find which gateway a user is on?,"A session registry (Redis) mapping user → gateway or devices, updated on connect and disconnect, with TTLs.",Chat system
+Why persist a message before acknowledging it?,So an acknowledged message is never lost if the server crashes.,Chat system
+How do you order chat messages?,A monotonically increasing sequence number per conversation; clients sort by it and detect gaps.,Chat system
+How do retries avoid duplicate messages?,The client sends a client_msg_id; the server dedupes and returns the original ack.,Chat system
+How does multi-device sync work?,Each device keeps a cursor (last seq seen) and fetches everything newer on reconnect.,Chat system
+Fan-out on write vs fan-out on read?,"Write: push into followers' timelines (fast reads, expensive for big accounts). Read: pull and merge at read time (cheap writes, slow reads).",News feed
+How do you solve the celebrity problem?,Hybrid: push for normal accounts; pull celebrities' recent posts at read time and merge.,News feed
+What's stored in the timeline cache?,Only post IDs (a capped Redis list per user); posts are hydrated in a batch at read time.,News feed
+Why is eventual consistency OK for feeds?,A post appearing a few seconds late is acceptable; availability and fast reads matter more.,News feed
+What is adaptive bitrate streaming?,Video is cut into segments at several bitrates (HLS/DASH); the player picks a rendition per segment based on bandwidth.,Video streaming
+How do you make transcoding fast?,"Split the video into chunks and transcode them in parallel as a DAG of retryable, idempotent tasks.",Video streaming
+Why must video be served from a CDN?,Egress is enormous (tens of Tbps); immutable segments cache perfectly at edges.,Video streaming
+How do you count video views at scale?,"Batch events into a stream, aggregate per minute, update counters: eventually consistent, deduped.",Video streaming
+"Where do live driver locations live, and why?",In an in-memory geo index sharded by region: a huge write rate of data that's stale within seconds.,Ride sharing
+Geohash vs quadtree?,"Geohash: fixed cells, shared prefix ≈ proximity, easy in Redis. Quadtree: adapts to density, more complex to maintain.",Ride sharing
+Why search the neighbouring geohash cells?,Nearby points can fall across a cell boundary.,Ride sharing
+How do you prevent double-assigning a driver?,"Offer to one driver at a time, then claim atomically with a conditional update (WHERE status = 'available').",Ride sharing
+Crawler URL frontier: front vs back queues?,"Front: priority (importance). Back: one queue per host, for politeness (rate limits per host).",Web crawler
+How do you dedupe billions of URLs cheaply?,"Normalise URLs, then use a Bloom filter (rare false positives, no false negatives).",Web crawler
+How do you detect near-duplicate pages?,SimHash fingerprints (plus checksums for exact duplicates).,Web crawler
+Defences against crawler traps?,"Max URL length, max depth, per-host page budgets, and spotting repeating path patterns.",Web crawler
+Why a separate queue per notification channel?,Isolation (bulkhead): a slow SMS provider can't delay push or email; each channel scales separately.,Notification system
+How do you keep OTPs fast during a marketing blast?,Separate high and low priority queues with dedicated workers.,Notification system
+How do you avoid duplicate notifications?,"Idempotency keys at the API, per-message send records, provider collapse IDs.",Notification system
+Why does the notification API return 202?,"The request is accepted for asynchronous processing, not completed.",Notification system
+How does a trie answer autocomplete in O(prefix length)?,Every node stores its precomputed top-k completions; walk to the prefix and return the list.,Search autocomplete
+How is the typeahead trie built?,"Offline: aggregate query logs (with time decay), filter, build snapshots, load into servers with a swap.",Search autocomplete
+How do you keep suggestions fresh for breaking news?,"A real-time trending layer from stream processing, merged with the trie's results.",Search autocomplete
+Two ways to cut typeahead traffic?,Client debouncing and caching (browser + CDN) of short popular prefixes.,Search autocomplete
+Why split files into content-hashed chunks?,Upload only changed chunks (delta sync) and store identical chunks once (dedupe).,File sync (Dropbox)
+Content-defined vs fixed-size chunking?,Content-defined boundaries (rolling hash) survive insertions; fixed-size chunks all shift after an insert.,File sync (Dropbox)
+How do other devices learn about a change?,A notification (long poll or WebSocket) prompts them to fetch changes since their cursor in the journal.,File sync (Dropbox)
+How are concurrent offline edits handled?,Optimistic concurrency on base_version; the loser is saved as a conflicted copy.,File sync (Dropbox)

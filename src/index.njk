@@ -1,0 +1,65 @@
+---
+layout: layouts/base.njk
+title: System Design Guide
+description: A free, organised study guide for system design interviews. Fundamentals with diagrams and trade-offs, ten worked interview questions, and an Anki deck.
+section: home
+---
+<div class="home">
+  <section class="hero">
+    <p class="eyebrow">Free study guide · system design interviews</p>
+    <h1>Learn to design large-scale systems from scratch.</h1>
+    <p class="lede">Every building block explained plainly: what it is, when to use it and what it costs, with a diagram for each. Then ten classic interview questions worked through step by step, showing the thinking and the trade-offs, not just the final boxes and arrows.</p>
+    <div class="hero__cta">
+      <a class="btn" href="{{ collections.topics[0].url }}">Start with the fundamentals</a>
+      <a class="btn btn--ghost" href="{{ collections.practice[0].url }}">Jump to practice questions</a>
+    </div>
+    <div class="stats">
+      <span><b>{{ collections.topics.length }}</b> fundamentals</span>
+      <span><b>{{ collections.practice.length }}</b> worked questions</span>
+      <span><b>{{ flashcards.length }}</b> flashcards</span>
+    </div>
+  </section>
+
+  <h2 id="study-plan">A study plan</h2>
+  <p class="section-lede">Roughly three to four weeks at an hour a day. Tick pages off with “Mark as done” at the bottom of each one; your progress is saved in this browser.</p>
+  <ol class="plan">
+    <li><b>Learn the method.</b> Read <a href="/topics/how-to-approach/">how to approach the interview</a> and <a href="/topics/estimation/">back-of-the-envelope estimation</a>. Every answer in this guide follows that framework.</li>
+    <li><b>Foundations.</b> Networking, scaling and load balancing: how a request reaches your servers, and how you add more of them.</li>
+    <li><b>Data.</b> Databases, indexing, replication, sharding, consistent hashing and the CAP theorem. This is where most interview trade-offs live.</li>
+    <li><b>Speed and decoupling.</b> Caching, CDNs, message queues, APIs and rate limiting.</li>
+    <li><b>The rest of the toolkit.</b> Object storage, unique IDs and reliability patterns.</li>
+    <li><b>Practise out loud.</b> For each question, set a 45-minute timer and sketch your own answer <em>before</em> reading the walkthrough. Then compare.</li>
+    <li><b>Review daily.</b> Ten minutes of <a href="/flashcards/">flashcards</a> (or the Anki deck) keeps the terms and numbers fresh.</li>
+  </ol>
+
+  <h2 id="fundamentals">Fundamentals</h2>
+  <p class="section-lede">Each page covers what the concept is, how it works, the pros and cons, and what interviewers listen for.</p>
+  <div class="grid">
+    {%- for t in collections.topics %}
+    <a class="tile" href="{{ t.url }}" data-tile="{{ t.url }}">
+      <span class="tile__num">{{ t.data.order | pad2 }}</span>
+      <h3>{{ t.data.navTitle or t.data.title }}</h3>
+      <p>{{ t.data.summary }}</p>
+    </a>
+    {%- endfor %}
+  </div>
+
+  <h2 id="practice">Practice questions</h2>
+  <p class="section-lede">Full walkthroughs: requirements, estimates, API, data model, high-level design, deep dives and failure modes, with the reasoning spoken out loud.</p>
+  <div class="grid">
+    {%- for t in collections.practice %}
+    <a class="tile" href="{{ t.url }}" data-tile="{{ t.url }}">
+      <span class="tile__num">Q{{ t.data.order }} · {{ t.data.difficulty }}</span>
+      <h3>{{ t.data.navTitle or t.data.title }}</h3>
+      <p>{{ t.data.summary }}</p>
+    </a>
+    {%- endfor %}
+  </div>
+
+  <h2 id="review">Review with flashcards</h2>
+  <p class="section-lede">Key terms and concepts from every page, as an in-browser quiz and a downloadable Anki deck for spaced repetition.</p>
+  <div class="hero__cta">
+    <a class="btn" href="/flashcards/">Open the flashcards</a>
+    <a class="btn btn--ghost" href="/assets/anki/system-design-guide.apkg" download>Download the Anki deck</a>
+  </div>
+</div>

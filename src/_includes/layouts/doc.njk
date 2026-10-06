@@ -1,0 +1,73 @@
+---
+layout: layouts/base.njk
+---
+{#- Topic and practice pages.
+    Front matter: title, navTitle (shorter sidebar name), order, summary, glance: [ "…" ],
+    tags: [topic] or [practice], difficulty (practice), cards (flashcard topic key, defaults to the file name) -#}
+{%- set isTopic = "topic" in tags -%}
+{%- set list = collections.topics if isTopic else collections.practice -%}
+{%- set prev = list | getPreviousCollectionItem(page) -%}
+{%- set next = list | getNextCollectionItem(page) -%}
+{%- set toc = content | toc -%}
+{%- set cards = flashcards | cardsFor(cards or page.fileSlug) -%}
+{%- set words = (content | plain | wordcount) -%}
+
+<div class="doc">
+  <article class="doc__body">
+    <header class="doc__head">
+      <p class="eyebrow">{% if isTopic %}Fundamentals · {{ order | pad2 }}{% else %}Practice · Question {{ order }}{% if difficulty %} · {{ difficulty }}{% endif %}{% endif %}</p>
+      <h1>{{ title }}</h1>
+      <p class="lede">{{ summary }}</p>
+      <p class="doc__meta">{{ (words / 220) | round(0, "ceil") }} min read{% if cards.length %} · {{ cards.length }} flashcards{% endif %}</p>
+    </header>
+
+    {%- if glance %}
+    <aside class="glance">
+      <p class="glance__title">At a glance</p>
+      <ul>
+        {%- for g in glance %}
+        <li>{{ g | md | safe }}</li>
+        {%- endfor %}
+      </ul>
+    </aside>
+    {%- endif %}
+
+    <div class="prose">
+{{ content | safe }}
+    </div>
+
+    {%- if cards.length %}
+    <section class="selftest" aria-labelledby="test-yourself">
+      <h2 id="test-yourself">Test yourself</h2>
+      <p class="selftest__hint">Answer in your head, then click a card to check. All cards are in the <a href="/flashcards/">Anki deck</a>.</p>
+      <div class="cards">
+        {%- for c in cards %}
+        <button class="card" type="button" aria-expanded="false"><span class="card__front">{{ c.front | md | safe }}</span><span class="card__back">{{ c.back | md | safe }}</span></button>
+        {%- endfor %}
+      </div>
+    </section>
+    {%- endif %}
+
+    <div class="doc__done">
+      <button class="done-btn" type="button" data-done="{{ page.url }}" aria-pressed="false">Mark as done</button>
+    </div>
+
+    <nav class="pager" aria-label="Previous and next">
+      {%- if prev %}<a class="pager__prev" href="{{ prev.url }}"><span>Previous</span>{{ prev.data.title }}</a>{% else %}<span></span>{% endif %}
+      {%- if next %}<a class="pager__next" href="{{ next.url }}"><span>Next</span>{{ next.data.title }}</a>
+      {%- elif isTopic %}<a class="pager__next" href="{{ collections.practice[0].url }}"><span>Start practising</span>{{ collections.practice[0].data.title }}</a>
+      {%- else %}<a class="pager__next" href="/flashcards/"><span>Review</span>Flashcards &amp; Anki deck</a>{% endif %}
+    </nav>
+  </article>
+
+  {%- if toc.length > 2 %}
+  <nav class="toc" aria-label="On this page">
+    <p class="toc__title">On this page</p>
+    <ol>
+      {%- for h in toc %}
+      <li><a href="#{{ h.id }}">{{ h.text }}</a></li>
+      {%- endfor %}
+    </ol>
+  </nav>
+  {%- endif %}
+</div>

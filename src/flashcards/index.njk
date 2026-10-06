@@ -1,0 +1,63 @@
+---
+layout: layouts/base.njk
+title: Flashcards & Anki deck
+description: Every key term and concept from the System Design Guide as flashcards. Quiz yourself in the browser or download the Anki deck.
+section: flashcards
+permalink: /flashcards/
+---
+{%- set groups = collections.topics.concat(collections.practice) -%}
+<div class="home">
+  <p class="eyebrow">Review</p>
+  <h1>Flashcards &amp; Anki deck</h1>
+  <p class="lede">{{ flashcards.length }} cards covering every fundamental and practice question in the guide. Quiz yourself here, or import the deck into <a href="https://apps.ankiweb.net/">Anki</a> for spaced repetition.</p>
+
+  <div class="fc-actions">
+    <a class="btn" href="/assets/anki/system-design-guide.apkg" download>Download Anki deck (.apkg)</a>
+    <a class="btn btn--ghost" href="/assets/anki/system-design-guide.csv" download>CSV for other apps</a>
+  </div>
+  <p class="section-lede">In Anki: <b>File → Import</b> and pick the <code>.apkg</code>. Cards are tagged by topic (for example <code>sdg::caching</code>), so you can study one area at a time. Re-importing a newer version updates cards rather than duplicating them.</p>
+
+  <h2 id="quiz">Quick quiz</h2>
+  <p class="section-lede">Read the question, answer out loud, then reveal. Cards you miss come back a few cards later.</p>
+  <div class="fc-actions">
+    <label class="visually-hidden" for="quiz-topic">Topic</label>
+    <select class="fc-select" id="quiz-topic" data-quiz-topic>
+      <option value="">All topics ({{ flashcards.length }} cards)</option>
+      {%- for p in groups %}
+      {%- set n = (flashcards | cardsFor(p.data.cards or p.fileSlug)).length %}
+      {%- if n %}<option value="{{ p.data.cards or p.fileSlug }}">{{ p.data.navTitle or p.data.title }} ({{ n }})</option>{% endif %}
+      {%- endfor %}
+    </select>
+    <button class="btn" type="button" data-quiz-start>Start</button>
+  </div>
+
+  <div class="quiz" data-quiz hidden aria-live="polite">
+    <p class="quiz__meta"></p>
+    <div class="quiz__card">
+      <div class="quiz__q"></div>
+      <div class="quiz__a" hidden></div>
+    </div>
+    <div class="quiz__btns">
+      <button type="button" data-q="reveal">Show answer</button>
+      <button type="button" class="is-good" data-q="good" hidden>Got it</button>
+      <button type="button" class="is-again" data-q="again" hidden>Again</button>
+    </div>
+  </div>
+
+  <h2 id="all-cards">All cards</h2>
+  <p class="section-lede">Click a card to flip it.</p>
+  {%- for p in groups %}
+  {%- set cs = flashcards | cardsFor(p.data.cards or p.fileSlug) %}
+  {%- if cs.length %}
+  <section class="fc-topic" id="{{ p.data.cards or p.fileSlug }}">
+    <h2><a href="{{ p.url }}">{{ p.data.navTitle or p.data.title }}</a></h2>
+    <div class="cards">
+      {%- for c in cs %}
+      <button class="card" type="button" aria-expanded="false"><span class="card__front">{{ c.front | md | safe }}</span><span class="card__back">{{ c.back | md | safe }}</span></button>
+      {%- endfor %}
+    </div>
+  </section>
+  {%- endif %}
+  {%- endfor %}
+</div>
+<script id="deck" type="application/json">{{ flashcards | deckJson(groups) | safe }}</script>

@@ -1,0 +1,15 @@
+{
+  "name": "system-design-guide",
+  "private": true,
+  "type": "module",
+  "description": "The System Design Study Guide — systemdesign.sagunpradhan.com.np",
+  "scripts": {
+    "build": "eleventy",
+    "start": "eleventy --serve",
+    "anki": "uv run --with genanki python scripts/build_anki.py"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.1.2",
+    "markdown-it": "^14.1.0"
+  }
+}

@@ -1,0 +1,80 @@
+{#- Base layout: header (brand, search, theme), sidebar navigation with progress ticks, footer.
+    Front matter: title, description, section (topics | practice | flashcards | home) -#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.url == "/" %}{{ site.title }} — Learn to design large-scale systems{% else %}{{ title }} — {{ site.title }}{% endif %}</title>
+  <meta name="description" content="{{ description or summary or site.description }}">
+  <meta name="author" content="{{ site.author }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta property="og:type" content="{{ 'website' if page.url == '/' else 'article' }}">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description or summary or site.description }}">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151b19" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="{{ '/assets/img/favicon.svg' | v }}" type="image/svg+xml">
+  <link rel="icon" href="{{ '/assets/img/favicon.png' | v }}" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="{{ '/assets/img/apple-touch-icon.png' | v }}">
+  <link rel="stylesheet" href="{{ '/assets/css/guide.css' | v }}">
+  {#- apply a saved theme before first paint, so there's no flash -#}
+  <script>try { var t = localStorage.getItem("sdg-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+
+<body class="section-{{ section or 'home' }}">
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <button class="top__menu" type="button" aria-expanded="false" aria-controls="sidebar" aria-label="Open navigation">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <a class="brand" href="/">
+      <img src="{{ '/assets/img/favicon.svg' | v }}" width="28" height="28" alt="">
+      <span>System Design <b>Guide</b></span>
+    </a>
+    <div class="search" role="search">
+      <input class="search__input" type="search" placeholder="Search topics and questions…  /" aria-label="Search the guide" autocomplete="off">
+      <ul class="search__results" hidden></ul>
+    </div>
+    <button class="top__theme" type="button" aria-label="Toggle dark mode">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Guide">
+      <a class="side__link{% if page.url == '/' %} is-current{% endif %}" href="/">Home &amp; study plan</a>
+
+      <p class="side__head">Fundamentals <span class="side__count" data-progress="topic"></span></p>
+      <ol class="side__list">
+        {%- for t in collections.topics %}
+        <li><a class="side__link{% if page.url == t.url %} is-current{% endif %}" href="{{ t.url }}" data-done-key="{{ t.url }}"><span class="side__num">{{ t.data.order | pad2 }}</span>{{ t.data.navTitle or t.data.title }}</a></li>
+        {%- endfor %}
+      </ol>
+
+      <p class="side__head">Practice questions <span class="side__count" data-progress="practice"></span></p>
+      <ol class="side__list">
+        {%- for t in collections.practice %}
+        <li><a class="side__link{% if page.url == t.url %} is-current{% endif %}" href="{{ t.url }}" data-done-key="{{ t.url }}"><span class="side__num">Q{{ t.data.order }}</span>{{ t.data.navTitle or t.data.title }}</a></li>
+        {%- endfor %}
+      </ol>
+
+      <p class="side__head">Review</p>
+      <a class="side__link{% if page.url == '/flashcards/' %} is-current{% endif %}" href="/flashcards/">Flashcards &amp; Anki deck</a>
+    </nav>
+
+    <main id="main" class="main">
+{{ content | safe }}
+    </main>
+  </div>
+
+  <footer class="foot">
+    <p>Built by <a href="{{ site.authorUrl }}">{{ site.author }}</a> · Free to read and share for studying.</p>
+    <p><a href="/flashcards/">Flashcards</a> · <a href="/sitemap.xml">Sitemap</a></p>
+  </footer>
+
+  <script src="{{ '/assets/js/guide.js' | v }}" defer></script>
+</body>
+</html>
