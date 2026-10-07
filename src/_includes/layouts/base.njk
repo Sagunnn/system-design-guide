@@ -13,8 +13,8 @@
   <meta property="og:title" content="{{ title }}">
   <meta property="og:description" content="{{ description or summary or site.description }}">
   <meta property="og:url" content="{{ site.url }}{{ page.url }}">
-  <meta name="theme-color" content="#faf8f3" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#151b19" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#d9d6cc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111611" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="{{ '/assets/img/favicon.svg' | v }}" type="image/svg+xml">
   <link rel="icon" href="{{ '/assets/img/favicon.png' | v }}" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="{{ '/assets/img/apple-touch-icon.png' | v }}">
@@ -32,7 +32,7 @@
     </button>
     <a class="brand" href="/">
       <img src="{{ '/assets/img/favicon.svg' | v }}" width="28" height="28" alt="">
-      <span>System Design <b>Guide</b></span>
+      <span>SYSTEM DESIGN <b>GUIDE</b></span>
     </a>
     <div class="search" role="search">
       <input class="search__input" type="search" placeholder="Search topics and questions…  /" aria-label="Search the guide" autocomplete="off">
@@ -73,6 +73,7 @@
   <footer class="foot">
     <p>Built by <a href="{{ site.authorUrl }}">{{ site.author }}</a> · Free to read and share for studying.</p>
     <p><a href="/flashcards/">Flashcards</a> · <a href="/sitemap.xml">Sitemap</a></p>
+    <p class="foot__legal">Styled after classic handheld consoles. Game Boy is a trademark of Nintendo; this site isn't affiliated.</p>
   </footer>
 
   <script src="{{ '/assets/js/guide.js' | v }}" defer></script>

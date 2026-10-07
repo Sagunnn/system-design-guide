@@ -1,7 +1,7 @@
 ---
 layout: layouts/base.njk
 title: Flashcards & Anki deck
-description: Every key term and concept from the System Design Guide as flashcards. Quiz yourself in the browser or download the Anki deck.
+description: Every key term and concept from the System Design Guide as flashcards. Play them on a pocket console in the browser, or download the Anki deck.
 section: flashcards
 permalink: /flashcards/
 ---
@@ -9,38 +9,70 @@ permalink: /flashcards/
 <div class="home">
   <p class="eyebrow">Review</p>
   <h1>Flashcards &amp; Anki deck</h1>
-  <p class="lede">{{ flashcards.length }} cards covering every fundamental and practice question in the guide. Quiz yourself here, or import the deck into <a href="https://apps.ankiweb.net/">Anki</a> for spaced repetition.</p>
+  <p class="lede">{{ flashcards.length }} cards covering every fundamental and practice question in the guide. Play them on the console below, or import the deck into <a href="https://apps.ankiweb.net/">Anki</a> for spaced repetition.</p>
 
-  <div class="fc-actions">
-    <a class="btn" href="/assets/anki/system-design-guide.apkg" download>Download Anki deck (.apkg)</a>
-    <a class="btn btn--ghost" href="/assets/anki/system-design-guide.csv" download>CSV for other apps</a>
-  </div>
-  <p class="section-lede">In Anki: <b>File → Import</b> and pick the <code>.apkg</code>. Cards are tagged by topic (for example <code>sdg::caching</code>), so you can study one area at a time. Re-importing a newer version updates cards rather than duplicating them.</p>
-
-  <h2 id="quiz">Quick quiz</h2>
-  <p class="section-lede">Read the question, answer out loud, then reveal. Cards you miss come back a few cards later.</p>
-  <div class="fc-actions">
-    <label class="visually-hidden" for="quiz-topic">Topic</label>
-    <select class="fc-select" id="quiz-topic" data-quiz-topic>
-      <option value="">All topics ({{ flashcards.length }} cards)</option>
-      {%- for p in groups %}
-      {%- set n = (flashcards | cardsFor(p.data.cards or p.fileSlug)).length %}
-      {%- if n %}<option value="{{ p.data.cards or p.fileSlug }}">{{ p.data.navTitle or p.data.title }} ({{ n }})</option>{% endif %}
-      {%- endfor %}
-    </select>
-    <button class="btn" type="button" data-quiz-start>Start</button>
-  </div>
-
-  <div class="quiz" data-quiz hidden aria-live="polite">
-    <p class="quiz__meta"></p>
-    <div class="quiz__card">
-      <div class="quiz__q"></div>
-      <div class="quiz__a" hidden></div>
+  <div class="fc-play">
+    {#- The console. guide.js drives the screen; buttons carry data-key. -#}
+    <div class="gb" data-gb>
+      <div class="gb__top" aria-hidden="true"><span>◄ OFF·ON ►</span><span>STUDY BOY</span></div>
+      <div class="gb__bezel">
+        <p class="gb__stripes" aria-hidden="true">DOT MATRIX WITH STUDY SOUND</p>
+        <div class="gb__power" aria-hidden="true"><span class="gb__led"></span>POWER</div>
+        <div class="gb__screen" tabindex="0" role="region" aria-label="Flashcard screen" aria-live="polite">
+          <div class="gb__meta" data-gb-meta></div>
+          <div class="gb__body" data-gb-body><p>Loading…</p></div>
+          <div class="gb__hint" data-gb-hint></div>
+        </div>
+      </div>
+      <p class="gb__brand" aria-hidden="true"><small>Sagun</small>STUDY BOY</p>
+      <div class="gb__controls">
+        <div class="gb__dpad" role="group" aria-label="Direction pad">
+          <button class="gb__d gb__d--up" type="button" data-key="up" aria-label="Up: scroll up">▲</button>
+          <button class="gb__d gb__d--left" type="button" data-key="left" aria-label="Left: previous topic">◄</button>
+          <span class="gb__dc" aria-hidden="true"></span>
+          <button class="gb__d gb__d--right" type="button" data-key="right" aria-label="Right: next topic">►</button>
+          <button class="gb__d gb__d--down" type="button" data-key="down" aria-label="Down: scroll down">▼</button>
+        </div>
+        <div class="gb__ab">
+          <span class="gb__key"><button class="gb__btn" type="button" data-key="b" aria-label="B: again"></button>B</span>
+          <span class="gb__key"><button class="gb__btn" type="button" data-key="a" aria-label="A: flip, then got it"></button>A</span>
+        </div>
+        <div class="gb__pills">
+          <span class="gb__key"><button class="gb__pill" type="button" data-key="select" aria-label="Select: next topic"></button>SELECT</span>
+          <span class="gb__key"><button class="gb__pill" type="button" data-key="start" aria-label="Start: play or menu"></button>START</span>
+        </div>
+      </div>
+      <div class="gb__speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     </div>
-    <div class="quiz__btns">
-      <button type="button" data-q="reveal">Show answer</button>
-      <button type="button" class="is-good" data-q="good" hidden>Got it</button>
-      <button type="button" class="is-again" data-q="again" hidden>Again</button>
+
+    <div class="fc-side">
+      <h2 id="how-to-play">How to play</h2>
+      <ul class="fc-keys">
+        <li><b><span class="arw">◄ ►</span> or SELECT</b><span>Pick a topic (or all of them).</span></li>
+        <li><b>START</b><span>Start the deck. Press again mid-game for the menu.</span></li>
+        <li><b>A</b><span>Flip the card. Once you've read the answer, A means <em>got it</em>.</span></li>
+        <li><b>B</b><span><em>Again</em>: the card comes back a few cards later.</span></li>
+        <li><b><span class="arw">▲ ▼</span></b><span>Scroll a long answer.</span></li>
+      </ul>
+      <p class="fc-note">Keyboard, after clicking the console: arrow keys, <kbd>X</kbd> = A, <kbd>Z</kbd> = B, <kbd>Enter</kbd> = START, <kbd>Shift</kbd> = SELECT.</p>
+      <div class="fc-field">
+        <label for="gb-cart">Cartridge (topic)</label>
+        <select class="fc-select" id="gb-cart" data-gb-cart>
+          <option value="">All topics ({{ flashcards.length }} cards)</option>
+          {%- for p in groups %}
+          {%- set n = (flashcards | cardsFor(p.data.cards or p.fileSlug)).length %}
+          {%- if n %}<option value="{{ p.data.cards or p.fileSlug }}">{{ p.data.navTitle or p.data.title }} ({{ n }})</option>{% endif %}
+          {%- endfor %}
+        </select>
+      </div>
+      <div class="fc-actions"><button class="fc-sound" type="button" data-gb-sound aria-pressed="true">♪ Sound: on</button></div>
+
+      <h2 class="fc-h2" id="anki">Anki deck</h2>
+      <div class="fc-actions">
+        <a class="btn" href="/assets/anki/system-design-guide.apkg" download>Download .apkg</a>
+        <a class="btn btn--ghost" href="/assets/anki/system-design-guide.csv" download>CSV</a>
+      </div>
+      <p class="fc-note">In Anki: <b>File → Import</b> and pick the <code>.apkg</code>. Cards are tagged by topic (for example <code>sdg::caching</code>), so you can study one area at a time. Importing a newer version updates cards instead of duplicating them.</p>
     </div>
   </div>
 

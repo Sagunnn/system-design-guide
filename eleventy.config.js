@@ -62,7 +62,7 @@ function nodeSvg(n) {
     shape = `<path class="d-shape" d="M${x} ${y + ry}a${rx} ${ry} 0 0 0 ${g.w} 0a${rx} ${ry} 0 0 0 ${-g.w} 0v${g.h - 2 * ry}a${rx} ${ry} 0 0 0 ${g.w} 0v${-(g.h - 2 * ry)}"/>` +
             `<path class="d-shape d-shape--rim" d="M${x} ${y + ry}a${rx} ${ry} 0 0 0 ${g.w} 0"/>`;
   } else {
-    const r = n.kind === "client" ? g.h / 2 : 8;
+    const r = n.kind === "client" ? g.h / 2 : 2;
     shape = `<rect class="d-shape" x="${x}" y="${y}" width="${g.w}" height="${g.h}" rx="${r}"/>`;
     if (n.kind === "queue") {
       for (let i = 1; i <= 3; i++) shape += `<path class="d-shape d-shape--rim" d="M${x + g.w - 10 * i} ${y + 7}v${g.h - 14}"/>`;
@@ -105,7 +105,7 @@ function renderDiagram(spec, caption) {
   const groups = d.groups.map((g) => {
     const x = PAD + g.c1 * COL + 8, y = PAD + g.r1 * ROW + 4;
     const w = (g.c2 - g.c1 + 1) * COL - 16, h = (g.r2 - g.r1 + 1) * ROW - 8;
-    return `<rect class="d-group" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/><text class="d-glabel" x="${x + 12}" y="${y + 18}">${esc(g.label)}</text>`;
+    return `<rect class="d-group" x="${x}" y="${y}" width="${w}" height="${h}" rx="0"/><text class="d-glabel" x="${x + 12}" y="${y + 18}">${esc(g.label)}</text>`;
   }).join("");
   const desc = d.edges.map((e) => {
     const name = (id) => d.nodes[id].lines.join(" ");

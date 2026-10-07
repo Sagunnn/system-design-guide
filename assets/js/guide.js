@@ -1,6 +1,6 @@
 /* System Design Guide — behaviour. No dependencies.
    theme toggle · mobile sidebar · progress ticks (localStorage) · self-test cards ·
-   search (/search.json) · "On this page" highlighting · flashcard quiz */
+   search (/search.json) · "On this page" highlighting · flashcard console */
 
 (function () {
   'use strict';
@@ -172,57 +172,165 @@
     });
   }
 
-  /* ---- Flashcard quiz (flashcards page) ------------------------------------------------- */
-  var quiz = document.querySelector('[data-quiz]');
-  if (quiz) {
+  /* ---- Flashcards on the "Study Boy" console (flashcards page) --------------------------
+     States: off → boot → title → q (question) → a (answer) → … → done. Buttons carry data-key;
+     the keyboard works once the console has been clicked or focused. */
+  var gb = document.querySelector('[data-gb]');
+  if (gb) {
     var deck = JSON.parse(document.getElementById('deck').textContent);
-    var q = quiz.querySelector('.quiz__q'), a = quiz.querySelector('.quiz__a');
-    var meta = quiz.querySelector('.quiz__meta'), reveal = quiz.querySelector('[data-q="reveal"]');
-    var grade = quiz.querySelectorAll('[data-q="good"], [data-q="again"]');
-    var topicSel = document.querySelector('[data-quiz-topic]');
-    var queue = [], seen = 0, right = 0;
+    var metaEl = gb.querySelector('[data-gb-meta]');
+    var body = gb.querySelector('[data-gb-body]');
+    var hint = gb.querySelector('[data-gb-hint]');
+    var cart = document.querySelector('[data-gb-cart]');
+    var soundBtn = document.querySelector('[data-gb-sound]');
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var state = 'off', queue = [], total = 0, missed = {}, card = null, engaged = false;
+    var soundOn = store('sdg-sound') !== false;
 
-    function shuffle(arr) {
-      for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
-      return arr;
+    var ac = null;
+    function tone(freq, dur, delay) {
+      if (!soundOn) return;
+      try {
+        ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+        var t = ac.currentTime + (delay || 0);
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'square';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.035, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(ac.destination);
+        o.start(t); o.stop(t + dur);
+      } catch (e) { /* no audio, no problem */ }
     }
-    function start() {
-      var topic = topicSel.value;
-      queue = shuffle(deck.filter(function (c) { return !topic || c.topic === topic; }));
-      seen = 0; right = 0;
-      quiz.hidden = false;
-      next();
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function topicName() { return cart.options[cart.selectedIndex].text.replace(/\s*\(\d+( cards)?\)$/, ''); }
+    function topicCount() { var m = cart.options[cart.selectedIndex].text.match(/\((\d+)/); return m ? m[1] : ''; }
+    function paint(meta, html, left, right) {
+      metaEl.innerHTML = meta;
+      body.innerHTML = html;
+      body.scrollTop = 0;
+      hint.innerHTML = '<span>' + left + '</span><span>' + (right || '') + '</span>';
     }
-    function next() {
-      if (!queue.length) {
-        q.textContent = 'Deck finished — ' + right + ' of ' + seen + ' right first time.';
-        a.hidden = true; reveal.hidden = true;
-        grade.forEach(function (b) { b.hidden = true; });
-        meta.textContent = 'Pick a topic and press Start to go again.';
-        return;
+
+    function boot() {
+      gb.classList.add('is-on');
+      if (reduce) { title(); return; }
+      state = 'boot';
+      paint('', '<p class="gb__boot">STUDY BOY</p>', '', '');
+      setTimeout(function () { if (state === 'boot') { tone(1046, 0.09); tone(2093, 0.4, 0.09); title(); } }, 1700);
+    }
+    function title() {
+      state = 'title';
+      gb.classList.remove('is-answer');
+      paint('<span>FLASHCARDS</span><span>' + deck.length + ' CARDS</span>',
+        '<div class="gb__title"><p class="gb__logo">SYSTEM<br>DESIGN</p>' +
+        '<p class="gb__cart"><span>◄</span><b>' + esc(topicName()) + '</b><span>►</span></p>' +
+        '<p class="gb__small">' + topicCount() + ' cards</p><p class="blink">PRESS START</p></div>',
+        '◄►:TOPIC', 'START:PLAY');
+    }
+    function play() {
+      var t = cart.value;
+      queue = deck.filter(function (c) { return !t || c.topic === t; });
+      for (var i = queue.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = queue[i]; queue[i] = queue[j]; queue[j] = x; }
+      total = queue.length;
+      missed = {};
+      ask();
+    }
+    function bar() {
+      var pct = total ? Math.round(100 * (total - queue.length) / total) : 0;
+      return '<span>' + esc(card.topicTitle) + '</span><span>' + (total - queue.length) + '/' + total + '</span><span class="gb__bar"><i style="width:' + pct + '%"></i></span>';
+    }
+    function ask() {
+      gb.classList.remove('is-answer');
+      if (!queue.length) { done(); return; }
+      card = queue[0];
+      state = 'q';
+      paint(bar(), '<p class="gb__q">' + card.frontHtml + '</p>', 'A:FLIP', 'START:MENU');
+    }
+    function flip() {
+      state = 'a';
+      gb.classList.add('is-answer');
+      paint(bar(), '<p class="gb__q">' + card.frontHtml + '</p><div class="gb__a">' + card.backHtml + '</div>', 'A:GOT IT', 'B:AGAIN');
+    }
+    function grade(ok) {
+      queue.shift();
+      if (ok) { tone(1318, 0.07); tone(1760, 0.1, 0.07); }
+      else { missed[card.frontHtml] = true; queue.splice(Math.min(queue.length, 3), 0, card); tone(196, 0.16); }
+      ask();
+    }
+    function done() {
+      state = 'done';
+      var first = total - Object.keys(missed).length;
+      [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.12, i * 0.1); });
+      paint('<span>' + esc(topicName()) + '</span>',
+        '<div class="gb__title"><p class="gb__logo">DECK<br>CLEAR!</p><p class="gb__small">' + first + ' of ' + total + ' right first try</p><p class="blink">PRESS START</p></div>',
+        '', 'START:MENU');
+    }
+    function shiftTopic(step) {
+      var n = cart.options.length;
+      cart.selectedIndex = (cart.selectedIndex + step + n) % n;
+      title();
+    }
+
+    function press(key) {
+      if (state === 'off') return;
+      tone(key === 'b' ? 440 : 880, 0.04);
+      if (key === 'up' || key === 'down') { body.scrollBy(0, key === 'up' ? -48 : 48); return; }
+      if (state === 'boot') { title(); return; }
+      if (state === 'title') {
+        if (key === 'left') shiftTopic(-1);
+        else if (key === 'right' || key === 'select') shiftTopic(1);
+        else if (key === 'start' || key === 'a') play();
+      } else if (state === 'q') {
+        if (key === 'a') flip();
+        else if (key === 'b') grade(false);
+        else if (key === 'start') title();
+      } else if (state === 'a') {
+        if (key === 'a') grade(true);
+        else if (key === 'b') grade(false);
+        else if (key === 'start') title();
+      } else if (state === 'done') {
+        if (key === 'start' || key === 'a') title();
       }
-      var c = queue[0];
-      q.innerHTML = c.frontHtml;
-      a.innerHTML = c.backHtml;
-      a.hidden = true; reveal.hidden = false;
-      grade.forEach(function (b) { b.hidden = true; });
-      meta.textContent = c.topicTitle + ' · ' + queue.length + ' left';
     }
-    quiz.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-q]');
+
+    gb.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-key]');
       if (!b) return;
-      var act = b.getAttribute('data-q');
-      if (act === 'reveal') {
-        a.hidden = false; reveal.hidden = true;
-        grade.forEach(function (x) { x.hidden = false; });
-      } else {
-        var card = queue.shift();
-        seen += 1;
-        if (act === 'good') right += 1;
-        else queue.splice(Math.min(queue.length, 3), 0, card);   // "again": see it again soon
-        next();
-      }
+      press(b.getAttribute('data-key'));
+      // after a mouse/touch press, park focus on the screen so Enter means START, not "this button again"
+      if (e.detail > 0) gb.querySelector('.gb__screen').focus({ preventScroll: true });
     });
-    document.querySelector('[data-quiz-start]').addEventListener('click', start);
+    gb.addEventListener('pointerdown', function () { engaged = true; });
+    gb.addEventListener('focusin', function () { engaged = true; });
+    document.addEventListener('pointerdown', function (e) { if (!gb.contains(e.target)) engaged = false; });
+    var KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', x: 'a', X: 'a', z: 'b', Z: 'b', Enter: 'start', Shift: 'select' };
+    document.addEventListener('keydown', function (e) {
+      var key = KEYS[e.key];
+      if (!engaged || !key || e.metaKey || e.ctrlKey || e.altKey || e.target.closest('input, select, textarea')) return;
+      if (e.key === 'Enter' && e.target.closest('button, a')) return;   // let Enter activate the focused control
+      e.preventDefault();
+      var btn = gb.querySelector('[data-key="' + key + '"]');
+      if (btn) { btn.classList.add('is-down'); setTimeout(function () { btn.classList.remove('is-down'); }, 120); }
+      press(key);
+    });
+    cart.addEventListener('change', function () { if (state !== 'off' && state !== 'boot') title(); });
+
+    function paintSound() {
+      soundBtn.textContent = '♪ Sound: ' + (soundOn ? 'on' : 'off');
+      soundBtn.setAttribute('aria-pressed', String(soundOn));
+    }
+    soundBtn.addEventListener('click', function () { soundOn = !soundOn; store('sdg-sound', soundOn); paintSound(); });
+    paintSound();
+
+    // switch on when the console scrolls into view
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (en) {
+        if (en[0].isIntersecting) { io.disconnect(); setTimeout(boot, 250); }
+      }, { threshold: 0.4 });
+      io.observe(gb);
+    } else {
+      boot();
+    }
   }
 }());
