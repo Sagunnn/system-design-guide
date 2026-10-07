@@ -110,9 +110,9 @@
         }, i * 140));
       }
     }
-    function effect(id, kind) {
+    function effect(id, kind, tag) {
       var el = els[id];
-      if (window.sdgFx && el) window.sdgFx(el, stage, el.offsetLeft, el.offsetTop, kind);
+      if (window.sdgFx && el) window.sdgFx(el, stage, el.offsetLeft, el.offsetTop, kind, tag);
     }
 
     /* ---- requests ---- */
@@ -180,7 +180,7 @@
       Object.keys(s.load || {}).forEach(function (id) { setLoad(id, s.load[id]); });
       Object.keys(s.count || {}).forEach(function (id) { setCount(id, s.count[id]); });
       Object.keys(s.meters || {}).forEach(function (k) { setMeter(k, s.meters[k]); });
-      (s.fx || []).forEach(function (f) { timers.push(setTimeout(function () { if (myRun === run) effect(f[0], f[1]); }, f[2] || 0)); });
+      (s.fx || []).forEach(function (f) { timers.push(setTimeout(function () { if (myRun === run) effect(f[0], f[1], f[3]); }, f[2] || 0)); });
       if (s.coins) coins(s.coins, myRun);
       if ('rate' in s) setRate(s.rate, myRun);
       if (s.end) finish();

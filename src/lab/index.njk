@@ -144,6 +144,29 @@ pageScripts: ["/assets/js/lab.js"]
     <h2>The best design: {{ s.title }}</h2>
     {{ s.model.spec | diagram(s.model.caption) | safe }}
     <ul class="lab__notes">{% for n in s.notes %}<li>{{ n | md | safe }}</li>{% endfor %}</ul>
+    {%- if s.tradeoffs %}
+    <h3 class="lab__sub">Trade-offs: nothing here is free</h3>
+    <div class="trade">
+      {%- for x in s.tradeoffs %}
+      <div class="trade__card">
+        <p class="trade__choice">{{ x[0] }}</p>
+        <p class="trade__gain"><b>You gain</b>{{ x[1] }}</p>
+        <p class="trade__cost"><b>You pay</b>{{ x[2] }}</p>
+      </div>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    {%- if s.failures %}
+    <h3 class="lab__sub">Failure modes and edge cases</h3>
+    <div class="table-scroll"><table class="fail">
+      <thead><tr><th>What goes wrong</th><th>What happens</th><th>How the design copes</th></tr></thead>
+      <tbody>{% for x in s.failures %}<tr><td><b>{{ x[0] }}</b></td><td>{{ x[1] }}</td><td>{{ x[2] }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {%- endif %}
+    {%- if s.deeper.length %}
+    <h3 class="lab__sub">Go deeper</h3>
+    <p class="deeper">{% for l in s.deeper %}<a href="{{ l[1] }}">{{ l[0] }} →</a>{% endfor %}</p>
+    {%- endif %}
     {%- if s.walkthrough %}<p><a class="btn" href="{{ s.walkthrough }}">Read the full walkthrough</a></p>{% endif %}
   </section>
   {%- endfor %}

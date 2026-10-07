@@ -319,32 +319,33 @@
     });
   }
   function ruleMet(r) { return r.t ? has(r.t) : linked(r.a, r.b); }
+  function learnFor(r) { var l = data.learn[(r.t || r.b).split('|')[0]]; return l ? { title: l[0], url: l[1] } : null; }
   function ruleName(r) { return r.t ? names(r.t) : names(r.a) + ' ↔ ' + names(r.b); }
 
   function score(s) {
     var max = 0, earned = 0, plus = 0, minus = 0, ok = [], miss = [], bad = [];
     (s.need || []).forEach(function (r) {
       max += r.pts;
-      if (has(r.t)) { earned += r.pts; ok.push({ name: names(r.t), why: r.why }); }
-      else miss.push({ name: 'Add ' + names(r.t), why: r.why });
+      if (has(r.t)) { earned += r.pts; ok.push({ name: names(r.t), why: r.why , learn: learnFor(r) }); }
+      else miss.push({ name: 'Add ' + names(r.t), why: r.why , learn: learnFor(r) });
     });
     (s.min || []).forEach(function (r) {
       max += r.pts;
       var label = r.n + '+ × ' + COMP[r.t].label;
-      if (count(r.t) >= r.n) { earned += r.pts; ok.push({ name: label, why: r.why }); }
-      else miss.push({ name: 'Use ' + label, why: r.why });
+      if (count(r.t) >= r.n) { earned += r.pts; ok.push({ name: label, why: r.why , learn: learnFor(r) }); }
+      else miss.push({ name: 'Use ' + label, why: r.why , learn: learnFor(r) });
     });
     (s.link || []).forEach(function (r) {
       max += r.pts;
-      if (linked(r.a, r.b)) { earned += r.pts; ok.push({ name: names(r.a) + ' → ' + names(r.b), why: r.why }); }
-      else miss.push({ name: 'Connect ' + names(r.a) + ' → ' + names(r.b), why: r.why });
+      if (linked(r.a, r.b)) { earned += r.pts; ok.push({ name: names(r.a) + ' → ' + names(r.b), why: r.why , learn: learnFor(r) }); }
+      else miss.push({ name: 'Connect ' + names(r.a) + ' → ' + names(r.b), why: r.why , learn: learnFor(r) });
     });
     (s.bonus || []).forEach(function (r) {
-      if (ruleMet(r)) { plus += r.pts; ok.push({ name: '★ ' + ruleName(r), why: r.why, bonus: true }); }
+      if (ruleMet(r)) { plus += r.pts; ok.push({ name: '★ ' + ruleName(r), why: r.why, bonus: true , learn: learnFor(r) }); }
     });
     (s.avoid || []).forEach(function (r) {
       var hit = r.t ? has(r.t) && !(r.unless && has(r.unless)) : linked(r.a, r.b);
-      if (hit) { minus += r.pts; bad.push({ name: ruleName(r), why: r.why }); }
+      if (hit) { minus += r.pts; bad.push({ name: ruleName(r), why: r.why , learn: learnFor(r) }); }
     });
     (s.fit || []).forEach(function (r) {
       var chosen = state.nodes.filter(function (n) { return n.t === r.t && n.tech; }).map(function (n) { return n.tech; });
@@ -380,7 +381,8 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function list(items, cls) {
     return '<ul class="lab__list lab__list--' + cls + '">' + items.map(function (i) {
-      return '<li' + (i.bonus ? ' class="is-bonus"' : '') + '><b>' + esc(i.name) + '</b><span>' + esc(i.why) + '</span></li>';
+      return '<li' + (i.bonus ? ' class="is-bonus"' : '') + '><b>' + esc(i.name) + '</b><span>' + esc(i.why) + '</span>' +
+        (i.learn ? '<a class="lab__learn" href="' + i.learn.url + '">Learn: ' + esc(i.learn.title) + ' →</a>' : '') + '</li>';
     }).join('') + '</ul>';
   }
   function check() {
@@ -474,21 +476,37 @@
       var ramGB = inflight * c.mbReq / 1024;
       var s = serversFor(cores, ramGB, c.size);
       r.counts.app = s.total;
-      r.answers.app = { n: s.total, label: 'App servers', types: ['app'], vcpu: s.vcpu };
+      var busy = appQps * c.cpuMs / 1000;
+      r.answers.app = { n: s.total, label: 'App servers', types: ['app'], vcpu: s.vcpu,
+        idle: function (g) { return 'each server would sit at ' + Math.round(100 * busy / (g * s.vcpu)) + '% CPU'; },
+        fail: function (g) {
+          var memHave = g * s.ram;
+          if (s.byRam && memHave < ramGB) return { tag: 'OUT OF MEMORY', text: fmt(inflight) + ' requests in flight × ' + c.mbReq + ' MB is ' + fmt(ramGB) + ' GB of memory, but ' + fmt(g) + ' servers have ' + fmt(memHave) + ' GB. They start swapping, garbage collection runs nonstop, then the kernel kills them for running out of memory and every request on them fails at once.' };
+          var pct = Math.round(100 * busy / (g * s.vcpu));
+          return { tag: 'CPU ' + pct + '%', text: fmt(g) + ' × ' + s.vcpu + ' vCPU is ' + fmt(g * s.vcpu) + ' cores, but the peak needs ' + fmt(busy) + ' cores of pure CPU: each server would run at ' + pct + '%. Past 100% the run queue grows every second, so the ' + fmt(inflight) + ' requests in flight pile up and p99 goes from ' + c.respMs + ' ms into seconds. Health checks start timing out, the balancer pulls servers out of rotation, and the rest get even more load.' };
+        } };
       r.tiles.push({ key: 'app', k: 'App servers', v: s.total + ' × ' + s.vcpu + ' vCPU · ' + s.ram + ' GB', d: s.n + ' needed + 1 spare · ' + fmt(cores) + ' cores of work at ' + Math.round(util * 100) + '% CPU · ' + fmt(inflight) + ' requests in flight' + (s.byRam ? ' (memory is the limit)' : '') });
       var lbTech = techOf('lb') || 'l7';
       var cap = lbTech === 'l4' ? c.l4rps : c.l7rps;
       var lbs = Math.max(2, Math.ceil(appQps / cap));
       r.counts.lb = lbs;
       r.counts.gateway = lbs;
-      r.answers.lb = { n: lbs, label: 'Load balancers', types: ['lb', 'gateway'] };
+      r.answers.lb = { n: lbs, label: 'Load balancers', types: ['lb', 'gateway'],
+        fail: function (g) {
+          if (g * cap < appQps) return { tag: 'CONN RESETS', text: (g === 1 ? 'One ' + data.profiles.lb[lbTech].label + ' balancer handles' : fmt(g) + ' ' + data.profiles.lb[lbTech].label + ' balancers handle') + ' about ' + fmt(g * cap) + ' req/s; the peak is ' + fmt(appQps) + '. New connections back up in the accept queue and then get reset, so users see connection errors before a single app server is busy.' };
+          return { tag: 'NO FAILOVER', text: 'One balancer has the capacity but no spare: the moment it restarts or its machine fails, the whole site is down even though every server behind it is healthy.' };
+        } };
       r.tiles.push({ key: 'lb', k: 'Load balancers', v: lbs + ' × ' + data.profiles.lb[lbTech].label, d: fmt(cap) + ' req/s each; at least 2 so one can fail' + (state.nodes.some(function (n) { return n.t === 'lb'; }) ? '' : ' · none on your canvas yet') });
     }
 
     if (c.conns > 0) {
       var gws = Math.ceil(c.conns / c.connsPerGw) + 1;
       r.counts.ws = gws;
-      r.answers.ws = { n: gws, label: 'Realtime gateways', types: ['ws'] };
+      r.answers.ws = { n: gws, label: 'Realtime gateways', types: ['ws'],
+        fail: function (g) {
+          var room = g * c.connsPerGw;
+          return { tag: 'CONN REFUSED', text: fmt(c.conns) + ' open connections, room for ' + fmt(room) + ': ' + fmt(Math.max(0, c.conns - room)) + ' clients are refused. They retry, and without jittered backoff they all come back at once (a reconnect storm) and knock over the gateways that are still up.' };
+        } };
       r.tiles.push({ key: 'ws', k: 'Realtime gateways', v: gws + ' servers', d: fmt(c.conns) + ' open connections at ' + fmt(c.connsPerGw) + ' each, + 1 spare' });
     }
 
@@ -510,14 +528,33 @@
           .sort(function (a, b) { return b[0] - a[0]; })[0];
         var nodes = need[0];
         r.counts[dbType] = nodes;
-        r.answers.db = { n: nodes, label: prof.label + ' nodes', types: [dbType] };
+        r.answers.db = { n: nodes, label: prof.label + ' nodes', types: [dbType],
+          fail: function (g) {
+            var lim = [['storage', stored / 1e12 / g / prof.tb], ['writes', peakWrites * c.rf / g / prof.writes], ['reads', dbReads / g / prof.reads]]
+              .sort(function (a, b) { return b[1] - a[1]; })[0][0];
+            if (lim === 'storage') return { tag: 'DISK FULL', text: fmtBytes(stored) + ' across ' + fmt(g) + ' nodes is ' + fmt(stored / 1e12 / g) + ' TB each, past the ≈' + prof.tb + ' TB a node can hold. Disks fill, compaction has no room to run, and nodes start rejecting writes.' };
+            if (lim === 'writes') return { tag: 'COMPACTION LAG', text: fmt(peakWrites) + ' writes/s × ' + c.rf + ' copies over ' + fmt(g) + ' nodes is ' + fmt(peakWrites * c.rf / g) + '/s each, against ≈' + fmt(prof.writes) + '. Memtables flush nonstop, compaction falls behind, every read checks more files, and latency climbs. A hot partition (one viral conversation) melts its replicas first.' };
+            return { tag: 'READ TIMEOUTS', text: fmt(dbReads) + ' reads/s over ' + fmt(g) + ' nodes is ' + fmt(dbReads / g) + '/s each, against ≈' + fmt(prof.reads) + '. Read queues grow, coordinators time out waiting for replicas, and clients retry, which doubles the load.' };
+          } };
         r.tiles.push({ key: 'db', k: 'Database', v: prof.label + ': ' + nodes + ' nodes', d: (need[1] === 'one per copy' ? 'the minimum for ' + c.rf + ' copies' : need[1] + ' set the size') + ' · ≈' + fmt(prof.writes) + ' writes/s and ' + prof.tb + ' TB per node · ' + detail });
       } else {
         var shards = Math.max(1, Math.ceil(peakWrites / prof.writes), Math.ceil(raw / 1e12 / prof.tb));
         var replicas = Math.max(1, Math.ceil(dbReads / shards / prof.reads));
         r.counts.sql = shards;
         r.counts.replica = replicas * shards;
-        r.answers.db = { n: shards * (1 + replicas), label: prof.label + ' machines (primaries + replicas)', types: ['sql', 'replica'] };
+        var pool = Math.round(prof.reads * 5 / 1000);      // connections a replica can keep busy at ~5 ms per query
+        r.answers.db = { n: shards * (1 + replicas), label: prof.label + ' machines (primaries + replicas)', types: ['sql', 'replica'],
+          fail: function (g) {
+            if (g < shards || peakWrites / Math.min(g, shards) > prof.writes) {
+              var prim = Math.min(g, shards);
+              return { tag: 'WRITE QUEUE', text: fmt(prim) + ' primar' + (prim > 1 ? 'ies' : 'y') + ' for ' + fmt(peakWrites) + ' writes/s is ' + fmt(peakWrites / prim) + ' each, against ≈' + fmt(prof.writes) + '. Commits wait on the write-ahead log, write latency climbs, and replicas fall behind (replication lag), so reads start returning stale data.' };
+            }
+            var readers = Math.max(1, g - shards);
+            return { tag: 'POOL EXHAUSTED', text: fmt(dbReads) + ' reads/s' + (hasCache ? '' : ' (no cache, so that\'s every read)') + ' over ' + fmt(readers) + ' replica' + (readers > 1 ? 's' : '') + ' is ' + fmt(dbReads / readers) + '/s each. A replica\'s pool of ~' + pool + ' connections at ~5 ms a query serves about ' + fmt(prof.reads) + '/s. The pool runs dry: requests queue for a free connection, wait past the timeout, and fail with "connection pool exhausted", even while the database\'s CPU looks fine.' };
+          } };
+        if (!hasCache && c.reads > 0 && dbReads > prof.reads) {
+          r.warn.push('No cache-aside: all ' + fmt(dbReads) + ' reads/s go to ' + prof.label + '. With ~' + pool + ' connections per replica at ~5 ms a query (≈' + fmt(prof.reads) + ' reads/s), you need ' + Math.ceil(dbReads / prof.reads) + ' replicas just to stop the connection pools running dry. A cache with a ' + c.hit + '% hit rate would cut that to ' + Math.max(1, Math.ceil(dbReads * (1 - c.hit / 100) / prof.reads)) + '.');
+        }
         r.tiles.push({ key: 'db', k: 'Database', v: prof.label + ': ' + (shards > 1 ? shards + ' shards, each 1 primary + ' : '1 primary + ') + replicas + ' replica' + (replicas > 1 ? 's' : ''), d: '≈' + fmt(prof.writes) + ' writes/s per primary, ' + fmt(prof.reads) + ' reads/s per replica, ' + prof.tb + ' TB per node · ' + detail });
         if (shards > 1) r.warn.push('One ' + prof.label + ' primary can\'t take ' + fmt(peakWrites) + ' writes/s or ' + fmtBytes(raw) + ' on its own: shard it ' + shards + ' ways, or pick a distributed database (Cassandra, DynamoDB, Spanner).');
       }
@@ -527,10 +564,13 @@
       var cacheGB = Math.max(1, 0.2 * reqDay * c.reads * Math.max(c.recBytes, 100) / 1e9);
       var cnodes = Math.ceil(cacheGB / c.redisGB);
       r.counts.cache = cnodes;
-      r.answers.cache = { n: cnodes, label: 'Cache nodes', types: ['cache'] };
+      r.answers.cache = { n: cnodes, label: 'Cache nodes', types: ['cache'],
+        fail: function (g) {
+          var have = g * c.redisGB, newHit = Math.round(c.hit * Math.min(1, have / cacheGB));
+          var after = appQps * c.reads * (1 - newHit / 100);
+          return { tag: 'EVICTIONS', text: fmtBytes(cacheGB * 1e9) + ' of hot data, ' + fmt(have) + ' GB of memory: the cache evicts keys that are needed again seconds later. The hit rate falls from about ' + c.hit + '% to ' + newHit + '%, so database reads jump from ' + fmt(dbReads) + ' to ' + fmt(after) + '/s. A cache that\'s too small turns into a database outage.' };
+        } };
       r.tiles.push({ key: 'cache', k: 'Cache', v: (techOf('cache') === 'memcached' ? 'Memcached' : 'Redis') + ': ' + fmtBytes(cacheGB * 1e9) + ' → ' + cnodes + ' node' + (cnodes > 1 ? 's' : ''), d: '80/20 rule: hold 20% of a day\'s reads · ' + c.redisGB + ' GB usable per node (double it for replicas)' });
-    } else if (dbReads > 20000) {
-      r.warn.push(fmt(dbReads) + ' reads/s would hit the database directly. Add a cache to your design.');
     }
 
     if (c.filesDay > 0) {
@@ -542,7 +582,11 @@
       var jobCores = c.jobsDay * c.jobCpuS / 86400 / util;
       var w = serversFor(jobCores, 0, c.size);
       r.counts.worker = w.total;
-      r.answers.worker = { n: w.total, label: 'Workers', types: ['worker'], vcpu: w.vcpu };
+      r.answers.worker = { n: w.total, label: 'Workers', types: ['worker'], vcpu: w.vcpu,
+        fail: function (g) {
+          var done = g * w.vcpu * util * 86400 / c.jobCpuS, grow = Math.max(0, c.jobsDay - done);
+          return { tag: 'BACKLOG +' + fmt(grow) + '/DAY', text: fmt(g) + ' × ' + w.vcpu + ' vCPU finish about ' + fmt(done) + ' jobs a day; ' + fmt(c.jobsDay) + ' arrive. The queue grows by ' + fmt(grow) + ' every day, so jobs that should take seconds wait hours, then days, until the queue\'s retention starts deleting them.' };
+        } };
       r.tiles.push({ key: 'worker', k: 'Workers', v: w.total + ' × ' + w.vcpu + ' vCPU', d: fmt(c.jobsDay * c.jobCpuS / 3600) + ' CPU-hours of jobs a day · ' + fmt(jobCores) + ' cores busy on average' });
     }
     if (!r.tiles.length || (reqDay === 0 && c.recDay === 0 && c.jobsDay === 0)) r.warn.push('Enter some traffic, data or jobs to size the system.');
@@ -583,11 +627,15 @@
     var v = { kind: 'close', g: g, a: a.n };
     if (ratio >= 2) {
       v.kind = 'over';
+      v.tag = 'BOOM!';
       v.text = 'BOOM! You guessed ' + fmt(g) + '; it needs ' + fmt(a.n) + '. That\'s ' + fmt(g - a.n) + ' idle machines' +
-        (a.vcpu ? ', about $' + fmt((g - a.n) * a.vcpu * USD_PER_VCPU_MONTH) + ' a month of wasted money' : ' of wasted money') + '.';
+        (a.vcpu ? ', about $' + fmt((g - a.n) * a.vcpu * USD_PER_VCPU_MONTH) + ' a month of wasted money' : ' of wasted money') +
+        (a.idle ? ', and ' + a.idle(g) : '') + '.';
     } else if (ratio <= 0.5) {
       v.kind = 'under';
-      v.text = 'MELTDOWN. ' + fmt(g) + ' can\'t carry the peak; it needs ' + fmt(a.n) + '. Requests would time out and pile up.';
+      var f = a.fail ? a.fail(g) : { tag: 'OVERLOAD', text: fmt(g) + ' can\'t carry the peak. Requests would time out and pile up.' };
+      v.tag = f.tag;
+      v.text = 'MELTDOWN: ' + f.tag + '. You guessed ' + fmt(g) + '; it needs ' + fmt(a.n) + '. ' + f.text;
     } else if (ratio >= 0.75 && ratio <= 1.34) {
       v.kind = 'spot';
       v.text = 'Spot on. You guessed ' + fmt(g) + '; it needs ' + fmt(a.n) + '.';
@@ -635,10 +683,10 @@
       if (!v) return;
       setTimeout(function () {
         var tile = out.querySelector('[data-key="' + k + '"]');
-        if (tile) fx(tile, tile, tile.offsetWidth / 2, tile.offsetHeight / 2, v.kind);
+        if (tile) fx(tile, tile, tile.offsetWidth / 2, tile.offsetHeight / 2, v.kind, v.tag);
         state.nodes.filter(function (n) { return r.answers[k].types.indexOf(n.t) >= 0; }).forEach(function (n) {
           var el = elFor(n.id);
-          if (el) fx(el, canvas, el.offsetLeft, el.offsetTop, v.kind);
+          if (el) fx(el, canvas, el.offsetLeft, el.offsetTop, v.kind, v.tag);
         });
       }, i * 260);                              // one after another, like a results screen
     });

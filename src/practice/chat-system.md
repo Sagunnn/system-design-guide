@@ -117,6 +117,20 @@ Networks drop acknowledgements, so the client **retries** unacknowledged sends: 
 - Assign a **monotonically increasing `seq` per conversation**, for example an atomic counter in the conversation's partition, or by routing all writes for a conversation through one owner (consistent hashing on `conversation_id`).
 - Clients display by `seq`, and can detect gaps (seq 41 then 43 means "fetch 42").
 
+### Edge cases: replication lag and hot partitions
+
+**Replication lag.** Each message is stored on, say, three replicas. If you write and read at consistency `ONE`, the recipient's history request can hit a replica that hasn't received the message yet: the push notification arrived, but the message is missing when they open the chat.
+
+- For message history, write and read at `QUORUM` (W + R > N), so every read overlaps at least one replica that has the write.
+- The sender's own message stays in local state until the server acknowledges it, so they never see it vanish (read-your-writes on the client).
+- Unread badges and "last seen" can tolerate lag; read them at `ONE`, because being a second stale costs nothing.
+
+**Hot partitions during viral events.** With `conversation_id` as the partition key, a live event's chat room with 200k people typing puts every write on one partition and its replicas. Those few nodes melt while the rest of the cluster idles.
+
+- Bound partitions by time: key on `(conversation_id, day)` so no partition grows forever.
+- For truly hot rooms, split writes across N sub-buckets `(conversation_id, bucket = hash(msg) % N)` and merge them when reading.
+- Product limits help as much as engineering: slow mode (one message per user every few seconds), and a broadcast-style tier for rooms above a size limit.
+
 ### Offline and multi-device sync
 
 Each **device** stores the last `seq` it has seen per conversation (or a global cursor). On reconnect it calls `GET /sync?since_cursor=…` and gets everything newer. Delivered and read state is per device too. This is a simple, robust model: the message store is the source of truth and devices catch up from it.
@@ -152,6 +166,8 @@ Each **device** stores the last `seq` it has seen per conversation (or a global 
 | Message store partition slow | Sends delay | Replication; tune consistency (`QUORUM` writes); backpressure to clients |
 | Push provider outage | Offline users not notified | Retry with backoff; messages are safe in storage and sync on next open |
 | Huge group spam | Fan-out storm | Async fan-out queue, per-group rate limits, pull model for big channels |
+| Replica lag on history reads | Message pushed but missing from history | `QUORUM` writes and reads for history; client keeps unacked sends locally |
+| Viral room (hot partition) | A few nodes overloaded, the rest idle | Time-bucketed keys, write sub-buckets merged on read, slow mode |
 
 ## 8. Wrap-up
 

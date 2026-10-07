@@ -1,0 +1,52 @@
+{#- The retro computer in the corner: a desktop of navigation icons and a little terminal
+    (cd home, cd design_lab, ls, …). Behaviour in assets/js/pc.js; the file system comes from the
+    collections below. -#}
+<button class="pc-launch" type="button" aria-expanded="false" aria-controls="pc" title="My computer (press ` for the terminal)">
+  {{ lab.icons.pc | safe }}<span class="visually-hidden">Open the retro computer: navigation and terminal</span>
+</button>
+
+<div class="pc" id="pc" role="dialog" aria-label="SAGUN-OS: navigation and terminal" hidden>
+  <div class="pc__case">
+    <div class="pc__bezel">
+      <div class="pc__screen">
+        <div class="pc__bar">
+          <span class="pc__title" data-pc-title>SAGUN-OS</span>
+          <span class="pc__clock" data-pc-clock></span>
+          <button class="pc__x" type="button" data-pc-close aria-label="Close">×</button>
+        </div>
+
+        <div class="pc__view pc__desk" data-pc-view="desk">
+          <button class="pc__icon" type="button" data-pc-open="home" style="--k: #f2c94c">{{ lab.icons.home | safe }}<span>Home</span></button>
+          <button class="pc__icon" type="button" data-pc-open="design_lab" style="--k: #d64545">{{ lab.icons.flask | safe }}<span>Design Lab</span></button>
+          <button class="pc__icon" type="button" data-pc-open="fundamentals" style="--k: #f2c94c">{{ lab.icons.folder | safe }}<span>Fundamentals</span></button>
+          <button class="pc__icon" type="button" data-pc-open="practice" style="--k: #f2994a">{{ lab.icons.folder | safe }}<span>Practice</span></button>
+          <button class="pc__icon" type="button" data-pc-open="flashcards" style="--k: #9a2257">{{ lab.icons.cards | safe }}<span>Flashcards</span></button>
+          <button class="pc__icon" type="button" data-pc-open="terminal" style="--k: #1f2330">{{ lab.icons.terminal | safe }}<span>Terminal</span></button>
+        </div>
+
+        <div class="pc__view pc__folder" data-pc-view="folder" hidden>
+          <div class="pc__path"><button type="button" data-pc-back>◄ Back</button><span data-pc-path></span></div>
+          <ul class="pc__files" data-pc-list></ul>
+        </div>
+
+        <div class="pc__view pc__term" data-pc-view="term" hidden>
+          <div class="pc__out" data-pc-out aria-live="polite"></div>
+          <form class="pc__form" data-pc-form autocomplete="off">
+            <label class="pc__line"><span class="pc__prompt" data-pc-prompt>sagun@guide:~$</span><input class="pc__input" data-pc-input type="text" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Terminal command"></label>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="pc__base" aria-hidden="true">
+      <span class="pc__keys"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="y"></i><i class="o"></i><i class="r"></i></span>
+      <span class="pc__led"></span>
+      <span class="pc__vent"></span>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="pc-fs">{
+  "file": {{ lab.icons.file | dump | safe }},
+  "fundamentals": [{% for t in collections.topics %}{"n": {{ t.fileSlug | dump | safe }}, "t": {{ (t.data.navTitle or t.data.title) | dump | safe }}, "u": "{{ t.url }}"}{% if not loop.last %},{% endif %}{% endfor %}],
+  "practice": [{% for t in collections.practice %}{"n": {{ t.fileSlug | dump | safe }}, "t": {{ (t.data.navTitle or t.data.title) | dump | safe }}, "u": "{{ t.url }}"}{% if not loop.last %},{% endif %}{% endfor %}]
+}</script>

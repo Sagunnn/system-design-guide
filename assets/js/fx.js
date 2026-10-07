@@ -1,18 +1,18 @@
 /* Pixel effects shared by the Design Lab and the demos:
-   sdgFx(el, host, x, y, kind) where kind is "over" (blast), "under" (meltdown) or "spot" (nice).
-   host is the positioned element the debris is drawn in; x, y are in host coordinates. */
+   sdgFx(el, host, x, y, kind, tag?) where kind is "over" (blast), "under" (meltdown) or "spot" (nice).
+   tag overrides the pop-up label (e.g. "POOL EXHAUSTED"). host is the positioned element the debris is drawn in; x, y are in host coordinates. */
 
 (function () {
   'use strict';
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function fx(el, host, x, y, kind) {
+  function fx(el, host, x, y, kind, tag) {
     var cls = { over: 'fx-blast', under: 'fx-melt', spot: 'fx-spot' }[kind];
     if (!cls) return;
     el.classList.remove('fx-blast', 'fx-melt', 'fx-spot', 'fx-charred');
     void el.offsetWidth;                        // restart the animation
     el.classList.add(cls);
-    var label = { over: 'BOOM!', under: 'OVERLOAD', spot: 'NICE!' }[kind];
+    var label = tag || { over: 'BOOM!', under: 'OVERLOAD', spot: 'NICE!' }[kind];
     var bits = [];
     var text = document.createElement('span');
     text.className = 'fx-text fx-text--' + kind;

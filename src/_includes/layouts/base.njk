@@ -81,7 +81,10 @@
     <p class="foot__legal">Styled after classic handheld consoles. Game Boy is a trademark of Nintendo; this site isn't affiliated.</p>
   </footer>
 
+  {% include "partials/pc.njk" %}
+
   <script src="{{ '/assets/js/guide.js' | v }}" defer></script>
+  <script src="{{ '/assets/js/pc.js' | v }}" defer></script>
   {%- if demos[page.fileSlug] or page.url == "/lab/" or page.url == "/" %}
   <script src="{{ '/assets/js/fx.js' | v }}" defer></script>
   <script src="{{ '/assets/js/demo.js' | v }}" defer></script>

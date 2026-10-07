@@ -505,4 +505,162 @@ for (const s of scenarios) {
   s.fit = fit[s.id] || [];
 }
 
-export default { components, scenarios, profiles, icons };
+// Where to learn more about each component (rating feedback and the model answer link here)
+const learn = {
+  client: ["The interview framework", "/topics/how-to-approach/"], dns: ["Networking basics", "/topics/networking/"],
+  cdn: ["CDNs", "/topics/cdn/"], lb: ["Load balancing", "/topics/load-balancing/"], gateway: ["Rate limiting", "/topics/rate-limiting/"],
+  ws: ["APIs & real-time", "/topics/apis/"], app: ["Scaling basics", "/topics/scaling/"], cache: ["Caching", "/topics/caching/"],
+  sql: ["SQL vs NoSQL", "/topics/databases/"], replica: ["Replication", "/topics/replication/"], nosql: ["SQL vs NoSQL", "/topics/databases/"],
+  blob: ["Blob storage", "/topics/object-storage/"], queue: ["Queues & streams", "/topics/message-queues/"], worker: ["Queues & streams", "/topics/message-queues/"],
+  idgen: ["Unique IDs", "/topics/unique-ids/"], search: ["Indexes & storage engines", "/topics/indexing/"],
+  geo: ["Ride sharing walkthrough", "/practice/ride-sharing/"], push: ["Notification system walkthrough", "/practice/notification-system/"],
+};
+
+// The best design is never free: what each key choice buys and costs, and how the design copes
+// when things go wrong. [choice, what you gain, what you pay] and [event, what happens, how the design copes]
+const depth = {
+  "web-app": {
+    tradeoffs: [
+      ["Cache-aside in front of the database", "The app decides what to cache; a cache outage degrades speed, not correctness.", "Readers can see stale data until the key is deleted or expires, so every write must invalidate the key."],
+      ["Asynchronous read replicas", "Cheap read capacity and a warm standby.", "Replication lag: a user can post a comment and not see it on refresh. Read a user's own recent writes from the primary for a few seconds."],
+      ["One SQL primary", "Transactions, joins and simple operations.", "A write ceiling around 5k/s. Fine at 1M users; plan the shard key before you need it."],
+    ],
+    failures: [
+      ["The primary dies", "Writes fail until a replica is promoted (about 30 s).", "Automatic failover. With async replication, the last fraction of a second of writes can be lost."],
+      ["A cache node restarts empty", "Every key misses at once and the database gets a stampede.", "Request coalescing (one refill per key), jittered TTLs, and warming the cache before taking traffic."],
+      ["A photo goes viral", "Millions of requests for one object.", "The CDN serves it; an origin shield turns thousands of edge misses into one origin request."],
+      ["A bad deploy", "Errors spike across the stateless tier.", "Canary releases, health checks that pull bad servers, and instant rollback."],
+    ],
+  },
+  "url-shortener": {
+    tradeoffs: [
+      ["301 vs 302 redirects", "301 is cached by browsers: less load.", "You lose click analytics. Use 302 if analytics matter."],
+      ["Counter + base62 codes", "No collisions and no lookups to check uniqueness.", "Codes are guessable in order; shuffle the number (a bijective mix) before encoding."],
+      ["Key-value store over SQL", "Scales to billions of rows by partitioning on the code.", "No joins or ad-hoc queries; analytics go to a separate store."],
+    ],
+    failures: [
+      ["A link goes viral (hot key)", "One cache shard and one store partition take all the traffic.", "Replicate hot keys across cache nodes and add a small in-process cache on each server."],
+      ["The ID generator is down", "New links can't be created.", "Each server leases a block of IDs in advance and keeps working through short outages."],
+      ["A link is deleted for abuse", "Caches and browsers keep redirecting.", "Delete the cache key, purge the CDN, and prefer 302 for links you may need to kill."],
+    ],
+  },
+  "rate-limiter": {
+    tradeoffs: [
+      ["Token bucket vs sliding window", "Token bucket allows short bursts and is cheap.", "Sliding windows are smoother and more exact but cost more memory or maths."],
+      ["Central Redis counters", "One exact count across all gateways.", "An extra network hop (~1 ms) and a dependency that can fail."],
+      ["Fail open vs fail closed", "Open keeps the API up if Redis dies.", "It also turns off protection. Close it for login and payment endpoints."],
+    ],
+    failures: [
+      ["Redis is unreachable", "Limits can't be checked.", "Fail open for normal endpoints, closed for sensitive ones, with a local in-memory fallback limit."],
+      ["One huge client (hot key)", "All its checks land on one Redis shard.", "A local pre-limiter per gateway, so only near-limit traffic consults Redis."],
+      ["Multi-region traffic", "Per-region counters allow N× the limit globally.", "Accept it, split the limit across regions, or sync counters asynchronously."],
+    ],
+  },
+  "chat-system": {
+    tradeoffs: [
+      ["Wide-column store for messages", "Billions of appends a day, partitioned by conversation, read in order.", "No joins or full-text search; search needs a separate index."],
+      ["At-least-once delivery", "No message is lost when a connection drops.", "Duplicates on retry, so clients send a message ID and the server dedupes."],
+      ["Push to each member on send (small groups)", "Instant delivery and simple reads.", "Huge groups multiply writes; very large channels switch to members pulling the latest messages."],
+    ],
+    failures: [
+      ["Messages arrive out of order", "Two senders, client clocks that disagree, or a retry make messages race.", "The server assigns a per-conversation sequence number; clients sort by it and fetch any gap they detect."],
+      ["Replication lag", "A message is written to one replica; the recipient's history read hits a replica that hasn't caught up, so the message seems missing.", "Write and read history at quorum (W + R > N), or read from the partition leader; tolerate lag only for counters like unread badges."],
+      ["A hot partition during a viral event", "A live event's chat or a 100k-member group pins one partition, so one node melts while others idle.", "Partition by (conversation, time bucket), cap group size, and move very large rooms to a broadcast/fan-out tier."],
+      ["A gateway crashes", "Its 50k connected users all reconnect at once (a reconnect storm).", "Jittered backoff, and resuming from each device's last sequence number instead of a full resync."],
+    ],
+  },
+  "news-feed": {
+    tradeoffs: [
+      ["Fan-out on write", "A timeline load is one cache read.", "Write amplification: one post becomes a write per follower."],
+      ["Hybrid for celebrities", "Avoids 100M writes per celebrity post.", "Reads get a merge step and more code paths to test."],
+      ["Capped timelines in Redis (~800 IDs)", "Bounded memory per user.", "Deep scrolling falls back to slower queries."],
+    ],
+    failures: [
+      ["A celebrity posts", "Fan-out workers fall behind for everyone.", "Skip fan-out above a follower threshold and merge their posts at read time."],
+      ["The timeline cache cluster is lost", "Every load rebuilds from the database at once.", "Replicas for the cache, rebuild timelines lazily, and shed load for inactive users."],
+      ["A post is deleted or a user is blocked", "Precomputed timelines still contain the ID.", "Filter at read time when hydrating posts."],
+    ],
+  },
+  "video-streaming": {
+    tradeoffs: [
+      ["Transcode every rendition up front", "Fast starts and smooth quality switching.", "Storage for renditions nobody watches; transcode the long tail on demand."],
+      ["2–6 s segments", "Quick adaptation to bandwidth changes.", "More requests and manifest overhead than longer segments."],
+      ["Pull CDN with an origin shield", "Simple, and popular videos cache themselves.", "The first viewer in each region pays a miss; pre-warm for premieres."],
+    ],
+    failures: [
+      ["A transcode worker crashes", "One chunk isn't encoded.", "Chunks are idempotent tasks on a queue and get retried."],
+      ["A CDN region goes down", "Viewers in that region buffer.", "Multi-CDN with DNS steering to healthy edges."],
+      ["A premiere starts (thundering herd)", "Millions of first requests miss together.", "Pre-warm edges, an origin shield, and collapsing identical requests."],
+    ],
+  },
+  "ride-sharing": {
+    tradeoffs: [
+      ["Locations in memory, not a database", "250k updates a second at microsecond cost.", "Lost on a crash, but rebuilt from the next round of pings within seconds."],
+      ["Geohash cells", "Simple, prefix-based and easy to shard.", "Edge effects: always search neighbouring cells too."],
+      ["Strong consistency for assignment", "A driver can never get two rides.", "A conditional write on every assignment, and some unavailability during partitions."],
+    ],
+    failures: [
+      ["Two riders match the same driver", "A race at the moment of assignment.", "Claim the driver with a conditional update (status = available) or a short lease."],
+      ["A concert ends (hot cell)", "One city shard gets thousands of requests at once.", "Split dense cells, add replicas for that shard, and surge pricing to shape demand."],
+      ["A driver's app goes offline", "A stale location keeps getting offered rides.", "Locations expire after a few missed pings."],
+    ],
+  },
+  "web-crawler": {
+    tradeoffs: [
+      ["Bloom filter for seen URLs", "About 1 byte per URL.", "False positives: a few new URLs are wrongly skipped."],
+      ["Priority over breadth-first", "Important pages are fresh.", "Low-priority pages may wait a long time."],
+      ["Politeness per host", "Sites don't block you.", "Big sites take days to crawl at one request a second."],
+    ],
+    failures: [
+      ["A crawler trap (infinite calendar)", "Endless URLs from one site.", "Depth, URL-length and per-host page budgets."],
+      ["A crawler node dies", "Its hosts stop being crawled.", "Durable frontier partitions reassigned to other nodes."],
+      ["Mirrors and duplicate pages", "Storage and work wasted.", "Content checksums and SimHash for near-duplicates."],
+    ],
+  },
+  "notification-system": {
+    tradeoffs: [
+      ["At-least-once sending", "Nothing is silently dropped.", "Possible duplicates; idempotency keys and send records make them rare."],
+      ["A queue per channel", "One slow provider can't stall the others.", "More queues and workers to operate."],
+      ["Priority queues", "One-time codes never wait behind marketing.", "Low priority can starve; give it a guaranteed share."],
+    ],
+    failures: [
+      ["A provider outage", "One channel stops delivering.", "A circuit breaker and a second provider per channel."],
+      ["A worker crashes after sending", "The message is redelivered and sent twice.", "Check a send record keyed by (notification, channel) before sending."],
+      ["A 50M-user campaign", "Queues flood and provider rate limits hit.", "Throttle to provider limits and spread sends over time."],
+    ],
+  },
+  typeahead: {
+    tradeoffs: [
+      ["Precomputed top-k in a trie", "Lookups in microseconds.", "Memory-heavy and stale until the next rebuild."],
+      ["Daily rebuild + a trending layer", "Cheap batch builds with fresh news.", "Two systems to merge and keep consistent."],
+      ["Global suggestions, cached at the edge", "Huge cache hit rates.", "Personalisation breaks caching; merge per-user terms on the client."],
+    ],
+    failures: [
+      ["An offensive suggestion appears", "Shown to millions immediately.", "A runtime blocklist applied before responding, no rebuild needed."],
+      ["A bad snapshot is loaded", "Wrong suggestions everywhere.", "Validate snapshots and keep the previous one for instant rollback."],
+      ["A hot prefix", "One trie shard overloaded.", "Edge caching and extra replicas for that shard."],
+    ],
+  },
+  "file-sync": {
+    tradeoffs: [
+      ["Content-defined chunks", "Small edits upload little; identical chunks are stored once.", "More CPU on the client to find chunk boundaries."],
+      ["Strongly consistent metadata (SQL)", "No corrupt or half-synced file trees.", "Harder to scale; shard by namespace."],
+      ["Conflicted copies instead of merging", "Never loses anyone's work.", "Users sometimes have to reconcile two files by hand."],
+    ],
+    failures: [
+      ["Two devices edit offline", "Both commit against the same version.", "The second commit gets a conflict and is saved as a conflicted copy."],
+      ["An upload is interrupted", "A partial file.", "Nothing is committed until every chunk exists; uploads resume per chunk."],
+      ["The notification service is down", "Devices don't hear about changes.", "Clients fall back to polling with backoff."],
+    ],
+  },
+};
+
+for (const s of scenarios) {
+  Object.assign(s, depth[s.id] || {});
+  const types = new Set();
+  for (const r of [...(s.need || []), ...(s.min || [])]) r.t.split("|").forEach((x) => types.add(x));
+  const seen = new Set();
+  s.deeper = [...types].map((x) => learn[x]).filter((l) => l && !seen.has(l[1]) && seen.add(l[1]));
+}
+
+export default { components, scenarios, profiles, icons, learn };
