@@ -3,7 +3,9 @@
      ~/home  ~/design_lab  ~/flashcards  ~/fundamentals/<topic>  ~/practice/<question>
    `cd` into a folder changes directory; `cd` (or `open`) on a page goes there. The window, the
    current directory and the scrollback survive page changes (sessionStorage), so you can keep
-   navigating from the terminal. Press ` (backtick) anywhere to open it. */
+   navigating from the terminal. Press ` (backtick) anywhere to open it.
+   Sounds are synthesised (no files): a POST beep, disk seeks and a fan hum on open, key clicks
+   while typing, seeks on `cd`. A hint with an arrow points at the computer once an hour. */
 
 (function () {
   'use strict';
@@ -22,6 +24,108 @@
   var pathEl = win.querySelector('[data-pc-path]');
   var clock = win.querySelector('[data-pc-clock]');
   var KEY = 'sdg-pc';
+
+  /* ---- sound: an old PC, synthesised with Web Audio ---- */
+  var soundBtn = win.querySelector('[data-pc-sound]');
+  var soundOn = true;
+  try { soundOn = localStorage.getItem('sdg-pc-sound') !== 'off'; } catch (e) { /* default on */ }
+  var ac = null, hum = null, noiseBuf = null;
+  function audio() {
+    if (!soundOn) return null;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      if (!noiseBuf) {
+        noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+        var d = noiseBuf.getChannelData(0);
+        for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      return ac;
+    } catch (e) { return null; }
+  }
+  function noise(at, dur, freq, q, vol, type) {
+    var src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = noiseBuf;
+    f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(vol, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    src.connect(f); f.connect(g); g.connect(ac.destination);
+    src.start(at, Math.random() * 0.5); src.stop(at + dur + 0.02);
+  }
+  function beep(at) {
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'square'; o.frequency.value = 1000;
+    g.gain.setValueAtTime(0.035, at); g.gain.setValueAtTime(0.035, at + 0.11); g.gain.linearRampToValueAtTime(0, at + 0.13);
+    o.connect(g); g.connect(ac.destination); o.start(at); o.stop(at + 0.14);
+  }
+  function seeks(at, n) {                       // hard-drive head chatter
+    for (var i = 0; i < n; i++) {
+      at += 0.03 + Math.random() * 0.07;
+      noise(at, 0.018, 2500 + Math.random() * 1800, 3, 0.09);
+      if (Math.random() < 0.3) noise(at + 0.01, 0.03, 180, 1, 0.05, 'lowpass');   // the arm landing
+    }
+  }
+  function startHum() {                         // fan spin-up, then a quiet hum while open
+    if (hum) return;
+    var src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    var o = ac.createOscillator(), og = ac.createGain();
+    src.buffer = noiseBuf; src.loop = true;
+    f.type = 'lowpass'; f.frequency.setValueAtTime(200, ac.currentTime); f.frequency.linearRampToValueAtTime(700, ac.currentTime + 1.2);
+    g.gain.setValueAtTime(0.0001, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.03, ac.currentTime + 0.8);
+    g.gain.exponentialRampToValueAtTime(0.012, ac.currentTime + 2.5);
+    o.type = 'sine'; o.frequency.value = 60;   // mains hum
+    og.gain.setValueAtTime(0.0001, ac.currentTime); og.gain.exponentialRampToValueAtTime(0.008, ac.currentTime + 1);
+    src.connect(f); f.connect(g); g.connect(ac.destination);
+    o.connect(og); og.connect(ac.destination);
+    src.start(); o.start();
+    hum = {
+      slow: function () {                       // fan spinning down over ~1.5 s
+        var t = ac.currentTime;
+        f.frequency.cancelScheduledValues(t); f.frequency.setValueAtTime(f.frequency.value, t); f.frequency.exponentialRampToValueAtTime(60, t + 1.5);
+        g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(Math.max(g.gain.value, 0.012), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+        og.gain.cancelScheduledValues(t); og.gain.setValueAtTime(og.gain.value, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+        src.stop(t + 1.7); o.stop(t + 1.7);
+      },
+      stop: function () {
+      var t = ac.currentTime;
+      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      og.gain.cancelScheduledValues(t); og.gain.setValueAtTime(og.gain.value, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      src.stop(t + 0.7); o.stop(t + 0.7);
+    } };
+  }
+  function stopHum() { if (hum) { hum.stop(); hum = null; } }
+  function windDown() {
+    var t = ac.currentTime;
+    noise(t, 0.05, 140, 1, 0.12, 'lowpass');                 // relay / power switch thunk
+    noise(t + 0.01, 0.02, 3200, 2, 0.06);
+    var o = ac.createOscillator(), g = ac.createGain();         // the CRT's whine dropping away
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(900, t + 0.02);
+    o.frequency.exponentialRampToValueAtTime(60, t + 0.5);
+    g.gain.setValueAtTime(0.04, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(g); g.connect(ac.destination); o.start(t + 0.02); o.stop(t + 0.6);
+  }
+  var sfx = {
+    boot: function () { if (!audio()) return; var t = ac.currentTime; beep(t + 0.05); seeks(t + 0.25, 12); startHum(); },
+    key: function () { if (!audio()) return; noise(ac.currentTime, 0.012, 3000 + Math.random() * 1500, 1.5, 0.05, 'highpass'); },
+    seek: function () { if (!audio()) return; seeks(ac.currentTime, 7); },
+    off: function () { if (ac) stopHum(); },
+    shutdown: function () { if (audio()) windDown(); if (hum) { hum.slow(); hum = null; } },
+  };
+  function paintSound() {
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+    soundBtn.textContent = soundOn ? '♪' : '×♪';
+    soundBtn.title = soundOn ? 'Sound on (click to mute)' : 'Sound off (click to unmute)';
+  }
+  soundBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    try { localStorage.setItem('sdg-pc-sound', soundOn ? 'on' : 'off'); } catch (e) { /* not kept */ }
+    paintSound();
+    if (soundOn) { if (audio()) startHum(); } else sfx.off();
+  });
+  paintSound();
 
   /* ---- the file system ---- */
   var FS = {
@@ -76,23 +180,32 @@
     if (view === 'term') { renderLines(); setTimeout(function () { input.focus(); }, 0); }
     save();
   }
-  function open(view) {
+  function open(view, quiet) {
+    if (win.classList.contains('is-off')) { clearTimeout(offTimer); win.classList.remove('is-off'); win.hidden = true; }
+    if (win.hidden && !quiet) sfx.boot();
+    hideHint(true);
     state.open = true;
     win.hidden = false;
     launch.setAttribute('aria-expanded', 'true');
     tick();
     show(view || state.view || 'desk');
   }
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var offTimer = null;
   function close() {
+    if (win.hidden || win.classList.contains('is-off')) return;
     input.value = '';                           // a half-typed line shouldn't come back later
     hIndex = -1;
+    sfx.shutdown();
     state.open = false;
-    win.hidden = true;
     launch.setAttribute('aria-expanded', 'false');
     save();
     launch.focus();
+    win.classList.add('is-off');                // CRT collapses to a line, then a dot
+    offTimer = setTimeout(function () { win.hidden = true; win.classList.remove('is-off'); }, reduceMotion ? 0 : 650);
   }
   function go(url) {
+    sfx.seek();
     save();
     if (location.pathname === url) { print('You\'re already here.', 'dim'); return; }
     window.location.href = url;
@@ -238,6 +351,7 @@
     run(v);
   });
   input.addEventListener('keydown', function (e) {
+    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Enter') sfx.key();
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       if (!state.history.length) return;
@@ -264,8 +378,33 @@
     print('Try: cd design_lab, cd fundamentals, cd caching', 'dim');
   }
   if (state.open) {
-    open(state.view === 'folder' && !FS[state.folder] ? 'desk' : state.view);
+    open(state.view === 'folder' && !FS[state.folder] ? 'desk' : state.view, true);
     if (state.view === 'folder' && FS[state.folder]) openFolder(state.folder);
     if (state.view === 'term') print('Now reading ' + (document.title.split(' — ')[0] || location.pathname) + '.', 'dim');
+  }
+
+  /* ---- once an hour, point at the computer ---- */
+  var hint = document.querySelector('[data-pc-hint]');
+  var hintTimer = null;
+  function hideHint(forGood) {
+    if (!hint || hint.hidden) return;
+    hint.classList.add('is-leaving');
+    setTimeout(function () { hint.hidden = true; hint.classList.remove('is-leaving'); }, 250);
+    clearTimeout(hintTimer);
+    if (forGood) { try { localStorage.setItem('sdg-pc-hint', String(Date.now())); } catch (e) { /* fine */ } }
+  }
+  if (hint) {
+    var last = 0;
+    try { last = Number(localStorage.getItem('sdg-pc-hint')) || 0; } catch (e) { last = Date.now(); }
+    if (!state.open && Date.now() - last > 60 * 60 * 1000) {
+      setTimeout(function () {
+        if (!win.hidden) return;
+        hint.hidden = false;
+        try { localStorage.setItem('sdg-pc-hint', String(Date.now())); } catch (e) { /* fine */ }
+        hintTimer = setTimeout(function () { hideHint(false); }, 9000);
+      }, 1400);
+    }
+    hint.querySelector('[data-pc-hint-open]').addEventListener('click', function () { hideHint(true); open('term'); });
+    hint.querySelector('[data-pc-hint-close]').addEventListener('click', function () { hideHint(true); });
   }
 }());

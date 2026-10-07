@@ -34,12 +34,22 @@
   <span class="visually-hidden">Open the retro computer: navigation and terminal</span>
 </button>
 
+<div class="pc-hint" data-pc-hint hidden>
+  <button class="pc-hint__body" type="button" data-pc-hint-open>
+    <b>Psst… there's a terminal in here.</b>
+    <span>Try <code>cd design_lab</code> or <code>help</code></span>
+  </button>
+  <button class="pc-hint__x" type="button" data-pc-hint-close aria-label="Dismiss">×</button>
+  <svg class="pc-hint__arrow" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges"><path fill="#5c1834" d="M2 2h2v2H2zM4 4h2v2H4zM6 6h2v2H6zM8 8h2v2H8zM10 4h2v6h-2zM4 10h6v2H4zM8 6h2v2H8z"/></svg>
+</div>
+
 <div class="pc" id="pc" role="dialog" aria-label="SAGUN-OS: navigation and terminal" hidden>
   <div class="pc__case">
     <div class="pc__bezel">
       <div class="pc__screen">
         <div class="pc__bar">
           <span class="pc__title" data-pc-title>SAGUN-OS</span>
+          <button class="pc__snd" type="button" data-pc-sound aria-pressed="true" title="Sound on/off">♪</button>
           <span class="pc__clock" data-pc-clock></span>
           <button class="pc__x" type="button" data-pc-close aria-label="Close">×</button>
         </div>

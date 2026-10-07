@@ -1252,3 +1252,44 @@ pre { border-width: 2px; box-shadow: none; }
   .pc__keys i:nth-child(n+5):not(.y):not(.o):not(.r) { display: none; }
 }
 @media print { .pc-launch, .pc { display: none; } }
+
+/* sound toggle in the SAGUN-OS title bar */
+.pc__snd { min-width: 30px; height: 22px; padding: 0 5px; font: 700 13px/1 var(--sans); color: #1f2330; background: #fdeee4; border: 2px solid #1f2330; cursor: pointer; }
+.pc__snd[aria-pressed="false"] { color: #8a8a8a; }
+
+/* once-an-hour hint pointing at the computer */
+.pc-hint { position: fixed; right: 104px; bottom: 98px; z-index: 62; display: flex; align-items: flex-start; filter: drop-shadow(4px 4px 0 #5c1834); animation: hint-in 0.35s steps(5) both; }
+.pc-hint[hidden] { display: none; }
+.pc-hint.is-leaving { animation: hint-out 0.25s steps(4) both; }
+.pc-hint__body { display: grid; gap: 4px; max-width: 250px; padding: 10px 12px; text-align: left; font: 14px/1.4 var(--sans); color: #2a0f1b; background: #fdeee4; border: 3px solid #5c1834; cursor: pointer; }
+.pc-hint__body b { font: 10px/1.6 var(--pixel); text-transform: uppercase; color: #5c1834; }
+.pc-hint__body code { font: 13px/1 var(--mono); background: #f3d9cb; border: 0; padding: 1px 4px; }
+.pc-hint__x { margin-left: -3px; width: 24px; height: 24px; padding: 0; font: 700 15px/1 var(--sans); color: #fdeee4; background: #5c1834; border: 3px solid #5c1834; cursor: pointer; }
+.pc-hint__arrow { position: absolute; right: -30px; bottom: -30px; width: 28px; height: 28px; animation: hint-point 0.8s steps(2) infinite; }
+@keyframes hint-in { from { opacity: 0; transform: translate(12px, 12px); } to { opacity: 1; transform: none; } }
+@keyframes hint-out { to { opacity: 0; transform: translate(12px, 12px); } }
+@keyframes hint-point { 50% { transform: translate(4px, 4px); } }
+@media (max-width: 600px) { .pc-hint { right: 88px; bottom: 82px; } .pc-hint__body { max-width: 210px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .pc-hint, .pc-hint__arrow, .pc-hint.is-leaving { animation: none; } }
+
+/* power-off: the CRT collapses to a bright line, then a dot, then dark */
+.pc.is-off .pc__screen > * { visibility: hidden; }
+.pc.is-off .pc__screen { background: #050816; }
+.pc.is-off .pc__screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 2;
+  background: #eef4ff;
+  box-shadow: 0 0 18px 6px rgba(160, 200, 255, 0.9);
+  animation: crt-off 0.55s steps(11) forwards;
+}
+@keyframes crt-off {
+  0% { width: 100%; height: 100%; opacity: 1; }
+  35% { width: 100%; height: 3px; }
+  70% { width: 6px; height: 3px; }
+  100% { width: 0; height: 0; opacity: 0; }
+}
+.pc.is-off .pc__led { background: #3a1a1a; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .pc.is-off .pc__screen::before { animation: none; display: none; } }
