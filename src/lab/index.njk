@@ -4,12 +4,33 @@ title: Design Lab
 description: Build a system design by dragging components onto a canvas for a real interview scenario, then get it rated with feedback and see the best design.
 section: lab
 permalink: /lab/
-pageScripts: ["/assets/js/lab.js"]
+pageScripts: ["/assets/js/lab.js", "/assets/js/lab-demo.js"]
 ---
 <div class="lab">
   <p class="eyebrow">Practice · interactive</p>
   <h1>Design Lab</h1>
   <p class="lede">Pick a scenario, drag components onto the canvas and connect them. Then check your design: you'll get a rank, what you got right, what's missing and why, and the design an interviewer would hope to see.</p>
+
+  <section class="demo" aria-labelledby="demo-title">
+    <div class="demo__head">
+      <h2 id="demo-title">See it in action</h2>
+      <div class="demo__btns">
+        <button class="btn btn--berry" type="button" data-demo-play="good">▶ When it goes well</button>
+        <button class="btn" type="button" data-demo-play="bad">▶ When it goes wrong</button>
+      </div>
+    </div>
+    <div class="demo__stage" data-demo-stage>
+      <svg class="demo__edges" aria-hidden="true" data-demo-edges></svg>
+      <p class="demo__idle" data-demo-idle>A photo-sharing app is about to hit its daily peak. Press play to watch what the right sizing, and the wrong one, does to it.</p>
+    </div>
+    <div class="demo__meters">
+      <p class="demo__meter" data-meter="rps"><span>Traffic</span><b>–</b></p>
+      <p class="demo__meter" data-meter="p99"><span>p99 latency</span><b>–</b></p>
+      <p class="demo__meter" data-meter="err"><span>Errors</span><b>–</b></p>
+      <p class="demo__meter" data-meter="cost"><span>Cost / month</span><b>–</b></p>
+    </div>
+    <p class="demo__caption" data-demo-caption aria-live="polite"><span class="demo__step"></span><span data-demo-text>Two short runs, about 15 seconds each.</span></p>
+  </section>
 
   <div class="lab__bar">
     <label class="visually-hidden" for="lab-scenario">Scenario</label>

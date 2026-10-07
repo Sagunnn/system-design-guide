@@ -663,6 +663,8 @@
     setTimeout(function () { el.classList.remove(cls, 'fx-charred'); }, 4200);
   }
 
+  window.sdgFx = fx;                          // shared with the demo (lab-demo.js)
+
   function reveal() {
     revealed = true;
     runCalc();

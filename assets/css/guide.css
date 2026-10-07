@@ -950,3 +950,57 @@ tr:last-child td { border-bottom: 0; }
   .fx-blast, .fx-melt, .fx-spot, .fx-text { animation: none; }
 }
 @media (max-width: 1100px) { .calc__side { position: static; } }
+
+/* --- Design Lab demo ------------------------------------------------------------------------- */
+.demo { margin: 30px 0 34px; padding: 16px 18px 18px; background: var(--panel); border: 3px solid var(--shadow); box-shadow: 5px 5px 0 var(--shadow); }
+.demo__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.demo__head h2 { margin: 0; font-size: 1rem; line-height: 1.6; color: var(--accent); }
+.demo__btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.demo__btns .btn { padding: 11px 14px; }
+.demo__btns .btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.demo__stage {
+  position: relative;
+  height: 330px;
+  margin-top: 16px;
+  overflow: hidden;
+  background-color: var(--bg);
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 16%, transparent) 1.2px, transparent 1.4px);
+  background-size: 20px 20px;
+  border: 3px solid var(--shadow);
+}
+.demo__edges { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; }
+.demo__link { stroke: var(--ink-faint); stroke-width: 3; stroke-dasharray: 2 6; }
+.demo__idle { position: absolute; inset: 0; display: grid; place-content: center; margin: 0; padding: 24px; text-align: center; font: 22px/1.3 var(--screen); color: var(--ink-faint); }
+.demo__idle[hidden] { display: none; }
+.demo__node { cursor: default; }
+.demo__cpu { display: block; width: 100%; height: 9px; margin-top: 3px; padding: 1px; border: 2px solid var(--shadow); background: var(--bg); }
+.demo__cpu i { display: block; height: 100%; width: 0; background: var(--good); transition: width 0.6s steps(6); }
+.demo__cpu.is-warn i { background: var(--warn); }
+.demo__cpu.is-bad i { background: #e0442f; }
+.demo__cpu-label { font: 15px/1 var(--screen); color: var(--ink-soft); }
+.demo__pkt { position: absolute; left: 0; top: 0; z-index: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; background: var(--accent); border: 2px solid var(--shadow); pointer-events: none; }
+.demo__pkt.is-hit { background: #3fa34d; }
+.demo__pkt.is-db { background: #ffd447; }
+.demo__pkt.is-error { background: #e0442f; }
+.demo__pile { position: absolute; z-index: 2; width: 132px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; pointer-events: none; }
+.demo__q { width: 9px; height: 9px; background: #ff8a2f; border: 1.5px solid var(--shadow); animation: fx-pop 0.3s steps(3); }
+.demo__coin { position: absolute; z-index: 5; width: 18px; height: 18px; display: grid; place-items: center; font: 10px/1 var(--pixel); color: #1f2330; background: #ffd447; border: 2px solid #1f2330; border-radius: 50%; pointer-events: none; animation: demo-coin 1.4s steps(10) forwards; }
+@keyframes demo-coin { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-90px); opacity: 0; } }
+.demo__meters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.demo__meter { margin: 0; padding: 8px 12px; background: var(--bg-soft); border: 3px solid var(--shadow); border-left-width: 8px; border-left-color: var(--line); }
+.demo__meter span { display: block; font: 8px/1.6 var(--pixel); text-transform: uppercase; color: var(--ink-faint); }
+.demo__meter b { display: block; font: 26px/1.1 var(--screen); font-weight: 400; color: var(--ink); }
+.demo__meter.is-ok { border-left-color: var(--good); }
+.demo__meter.is-warn { border-left-color: var(--warn); }
+.demo__meter.is-bad { border-left-color: #e0442f; }
+.demo__meter.is-bad b { color: #e0442f; }
+.demo__caption { display: flex; gap: 12px; align-items: baseline; margin: 14px 0 0; padding: 12px 16px; min-height: 64px; font-size: 15.5px; background: var(--bg); border: 3px solid var(--shadow); }
+.demo__step { flex: none; font: 9px/1.6 var(--pixel); color: var(--berry); }
+.demo__step:empty { display: none; }
+@media (max-width: 700px) {
+  .demo__stage { height: 460px; }
+  .demo__node { width: 98px; font-size: 11px; padding: 6px 8px; }
+  .demo__node .px-icon { width: 20px; height: 20px; }
+  .demo__meters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demo__pile { width: 74px; justify-content: flex-start; }
+}
