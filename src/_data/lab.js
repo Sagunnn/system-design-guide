@@ -505,4 +505,4 @@ for (const s of scenarios) {
   s.fit = fit[s.id] || [];
 }
 
-export default { components, scenarios, profiles };
+export default { components, scenarios, profiles, icons };

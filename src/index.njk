@@ -1,24 +1,46 @@
 ---
 layout: layouts/base.njk
 title: System Design Guide
-description: A free, organised study guide for system design interviews. Fundamentals with diagrams and trade-offs, ten worked interview questions, and an Anki deck.
+description: A free, organised study guide for system design interviews. Fundamentals with diagrams and trade-offs, ten worked interview questions, an interactive Design Lab, and an Anki deck.
 section: home
 ---
 <div class="home">
   <section class="hero">
     <p class="eyebrow">Free study guide · system design interviews</p>
     <h1>Learn to design large-scale systems from scratch.</h1>
-    <p class="lede">Every building block explained plainly: what it is, when to use it and what it costs, with a diagram for each. Then ten classic interview questions worked through step by step, showing the thinking and the trade-offs, not just the final boxes and arrows.</p>
+    <p class="lede">Every building block explained plainly: what it is, when to use it and what it costs, with a diagram for each. Ten classic interview questions worked through step by step. And a Design Lab where you build, size and stress-test your own designs.</p>
     <div class="hero__cta">
+      <a class="btn btn--berry" href="/lab/">Open the Design Lab</a>
       <a class="btn" href="{{ collections.topics[0].url }}">Start with the fundamentals</a>
-      <a class="btn btn--ghost" href="{{ collections.practice[0].url }}">Jump to practice questions</a>
+      <a class="btn btn--ghost" href="{{ collections.practice[0].url }}">Practice questions</a>
     </div>
     <p class="press" aria-hidden="true">▶ PRESS START<span class="blink">_</span></p>
     <div class="stats">
       <span><b>{{ collections.topics.length }}</b> fundamentals</span>
       <span><b>{{ collections.practice.length }}</b> worked questions</span>
+      <span><b>{{ lab.scenarios.length }}</b> lab scenarios</span>
       <span><b>{{ flashcards.length }}</b> flashcards</span>
     </div>
+  </section>
+
+  <section class="feature" aria-labelledby="lab">
+    <div class="feature__head">
+      <p class="eyebrow">Featured · interactive</p>
+      <h2 id="lab">The Design Lab</h2>
+      <p class="feature__lede">Reading designs is one thing; making one is what the interview tests. Pick a real brief, build your answer on a canvas, and find out how it holds up.</p>
+    </div>
+    <ul class="feature__list">
+      <li style="--k: var(--k-lb)">{{ lab.icons.lb | safe }}<span><b>Build it.</b> Drag load balancers, servers, databases, caches and queues onto a canvas, wire them up, and pick the real tech: PostgreSQL or Cassandra, Redis or Memcached, Kafka or SQS.</span></li>
+      <li style="--k: var(--k-db)">{{ lab.icons.sql | safe }}<span><b>Get rated.</b> A rank from S to D, what works, what's missing and why, and the anti-patterns that cost you. Then compare with the best design.</span></li>
+      <li style="--k: var(--k-service)">{{ lab.icons.app | safe }}<span><b>Size it.</b> From users and the work per request, see how many servers, load balancers, shards, replicas and cache nodes you need.</span></li>
+      <li style="--k: var(--k-cache)">{{ lab.icons.cache | safe }}<span><b>Guess first.</b> Estimate before the reveal. Way too many and it blasts (wasted money); way too few and it melts down.</span></li>
+    </ul>
+    <div class="hero__cta">
+      <a class="btn btn--berry" href="/lab/">Open the Design Lab</a>
+      <a class="btn btn--ghost" href="/lab/?s=url-shortener">Try the URL shortener</a>
+    </div>
+    {%- set demo = demos.lab %}
+    {% include "partials/demo.njk" %}
   </section>
 
   <h2 id="study-plan">A study plan</h2>
@@ -55,12 +77,6 @@ section: home
       <p>{{ t.data.summary }}</p>
     </a>
     {%- endfor %}
-  </div>
-
-  <h2 id="lab">Design Lab</h2>
-  <p class="section-lede">Drag load balancers, databases, caches and queues onto a canvas for a real interview scenario. Get your design ranked from S to D with feedback on what's missing, then compare it with the best design.</p>
-  <div class="hero__cta">
-    <a class="btn btn--berry" href="/lab/">Open the Design Lab</a>
   </div>
 
   <h2 id="review">Review with flashcards</h2>
