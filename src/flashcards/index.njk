@@ -9,23 +9,16 @@ permalink: /flashcards/
 <div class="home">
   <p class="eyebrow">Review</p>
   <h1>Flashcards &amp; Anki deck</h1>
-  <p class="lede">{{ flashcards.length }} cards covering every fundamental and practice question in the guide. Play them on the console below, or import the deck into <a href="https://apps.ankiweb.net/">Anki</a> for spaced repetition.</p>
+  <p class="lede">{{ flashcards.length }} cards covering every fundamental and practice question in the guide. Play them on the handheld below, or import the deck into <a href="https://apps.ankiweb.net/">Anki</a> for spaced repetition.</p>
 
   <div class="fc-play">
     {#- The console. guide.js drives the screen; buttons carry data-key. -#}
     <div class="gb" data-gb>
-      <div class="gb__top" aria-hidden="true"><span>◄ OFF·ON ►</span><span>STUDY BOY</span></div>
-      <div class="gb__bezel">
-        <p class="gb__stripes" aria-hidden="true">DOT MATRIX WITH STUDY SOUND</p>
-        <div class="gb__power" aria-hidden="true"><span class="gb__led"></span>POWER</div>
-        <div class="gb__screen" tabindex="0" role="region" aria-label="Flashcard screen" aria-live="polite">
-          <div class="gb__meta" data-gb-meta></div>
-          <div class="gb__body" data-gb-body><p>Loading…</p></div>
-          <div class="gb__hint" data-gb-hint></div>
-        </div>
-      </div>
-      <p class="gb__brand" aria-hidden="true"><small>Sagun</small>STUDY BOY</p>
-      <div class="gb__controls">
+      <button class="gb__sh gb__sh--l" type="button" data-key="left" aria-label="L: previous topic"></button>
+      <button class="gb__sh gb__sh--r" type="button" data-key="right" aria-label="R: next topic"></button>
+      <div class="gb__power" aria-hidden="true"><span class="gb__led"></span>POWER</div>
+
+      <div class="gb__wing gb__wing--l">
         <div class="gb__dpad" role="group" aria-label="Direction pad">
           <button class="gb__d gb__d--up" type="button" data-key="up" aria-label="Up: scroll up">▲</button>
           <button class="gb__d gb__d--left" type="button" data-key="left" aria-label="Left: previous topic">◄</button>
@@ -33,22 +26,37 @@ permalink: /flashcards/
           <button class="gb__d gb__d--right" type="button" data-key="right" aria-label="Right: next topic">►</button>
           <button class="gb__d gb__d--down" type="button" data-key="down" aria-label="Down: scroll down">▼</button>
         </div>
-        <div class="gb__ab">
-          <span class="gb__key"><button class="gb__btn" type="button" data-key="b" aria-label="B: again"></button>B</span>
-          <span class="gb__key"><button class="gb__btn" type="button" data-key="a" aria-label="A: flip, then got it"></button>A</span>
-        </div>
-        <div class="gb__pills">
-          <span class="gb__key"><button class="gb__pill" type="button" data-key="select" aria-label="Select: next topic"></button>SELECT</span>
-          <span class="gb__key"><button class="gb__pill" type="button" data-key="start" aria-label="Start: play or menu"></button>START</span>
+        <div class="gb__ss">
+          <span class="gb__sskey"><span>START</span><button class="gb__round" type="button" data-key="start" aria-label="Start: play or menu"></button></span>
+          <span class="gb__sskey"><span>SELECT</span><button class="gb__round" type="button" data-key="select" aria-label="Select: next topic"></button></span>
         </div>
       </div>
-      <div class="gb__speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+      <div class="gb__face">
+        <p class="gb__maker" aria-hidden="true">Sagun</p>
+        <div class="gb__bezel">
+          <div class="gb__screen" tabindex="0" role="region" aria-label="Flashcard screen" aria-live="polite">
+            <div class="gb__meta" data-gb-meta></div>
+            <div class="gb__body" data-gb-body><p>Loading…</p></div>
+            <div class="gb__hint" data-gb-hint></div>
+          </div>
+          <p class="gb__logo" aria-hidden="true">STUDY BOY<span>ADVANCE</span></p>
+        </div>
+      </div>
+
+      <div class="gb__wing gb__wing--r">
+        <div class="gb__ab">
+          <span class="gb__key gb__key--b"><button class="gb__btn" type="button" data-key="b" aria-label="B: again"></button>B</span>
+          <span class="gb__key gb__key--a"><button class="gb__btn" type="button" data-key="a" aria-label="A: flip, then got it"></button>A</span>
+        </div>
+        <div class="gb__speaker" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
     </div>
 
     <div class="fc-side">
       <h2 id="how-to-play">How to play</h2>
       <ul class="fc-keys">
-        <li><b><span class="arw">◄ ►</span> or SELECT</b><span>Pick a topic (or all of them).</span></li>
+        <li><b><span class="arw">◄ ►</span> L R SELECT</b><span>Pick a topic (or all of them).</span></li>
         <li><b>START</b><span>Start the deck. Press again mid-game for the menu.</span></li>
         <li><b>A</b><span>Flip the card. Once you've read the answer, A means <em>got it</em>.</span></li>
         <li><b>B</b><span><em>Again</em>: the card comes back a few cards later.</span></li>
@@ -66,8 +74,10 @@ permalink: /flashcards/
         </select>
       </div>
       <div class="fc-actions"><button class="fc-sound" type="button" data-gb-sound aria-pressed="true">♪ Sound: on</button></div>
+    </div>
 
-      <h2 class="fc-h2" id="anki">Anki deck</h2>
+    <div class="fc-side">
+      <h2 id="anki">Anki deck</h2>
       <div class="fc-actions">
         <a class="btn" href="/assets/anki/system-design-guide.apkg" download>Download .apkg</a>
         <a class="btn btn--ghost" href="/assets/anki/system-design-guide.csv" download>CSV</a>

@@ -172,7 +172,7 @@
     });
   }
 
-  /* ---- Flashcards on the "Study Boy" console (flashcards page) --------------------------
+  /* ---- Flashcards on the "Study Boy Advance" handheld (flashcards page) --------------------------
      States: off → boot → title → q (question) → a (answer) → … → done. Buttons carry data-key;
      the keyboard works once the console has been clicked or focused. */
   var gb = document.querySelector('[data-gb]');
@@ -216,17 +216,17 @@
       gb.classList.add('is-on');
       if (reduce) { title(); return; }
       state = 'boot';
-      paint('', '<p class="gb__boot">STUDY BOY</p>', '', '');
+      paint('', '<p class="gb__boot">STUDY BOY<span>ADVANCE</span></p>', '', '');
       setTimeout(function () { if (state === 'boot') { tone(1046, 0.09); tone(2093, 0.4, 0.09); title(); } }, 1700);
     }
     function title() {
       state = 'title';
       gb.classList.remove('is-answer');
       paint('<span>FLASHCARDS</span><span>' + deck.length + ' CARDS</span>',
-        '<div class="gb__title"><p class="gb__logo">SYSTEM<br>DESIGN</p>' +
+        '<div class="gb__title"><p class="gb__logo-scr">SYSTEM<br><em>DESIGN</em></p>' +
         '<p class="gb__cart"><span>◄</span><b>' + esc(topicName()) + '</b><span>►</span></p>' +
         '<p class="gb__small">' + topicCount() + ' cards</p><p class="blink">PRESS START</p></div>',
-        '◄►:TOPIC', 'START:PLAY');
+        '◄► L R:TOPIC', 'START:PLAY');
     }
     function play() {
       var t = cart.value;
@@ -263,7 +263,7 @@
       var first = total - Object.keys(missed).length;
       [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.12, i * 0.1); });
       paint('<span>' + esc(topicName()) + '</span>',
-        '<div class="gb__title"><p class="gb__logo">DECK<br>CLEAR!</p><p class="gb__small">' + first + ' of ' + total + ' right first try</p><p class="blink">PRESS START</p></div>',
+        '<div class="gb__title"><p class="gb__logo-scr">DECK<br><em>CLEAR!</em></p><p class="gb__small">' + first + ' of ' + total + ' right first try</p><p class="blink">PRESS START</p></div>',
         '', 'START:MENU');
     }
     function shiftTopic(step) {
