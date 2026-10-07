@@ -154,7 +154,7 @@ export default function (eleventyConfig) {
   // Design Lab: everything the browser needs to score a canvas (no model specs, those are pre-rendered)
   eleventyConfig.addFilter("labJson", (lab) => {
     const scenarios = lab.scenarios.map(({ model, notes, brief, ...rules }) => rules);
-    return JSON.stringify({ components: lab.components, scenarios }).replace(/<\//g, "<\\/");
+    return JSON.stringify({ components: lab.components, scenarios, profiles: lab.profiles }).replace(/<\//g, "<\\/");
   });
 
   // {% callout "tip" | "warn" | "interview" | "think", "Title" %} … {% endcallout %}

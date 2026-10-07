@@ -20,21 +20,21 @@ function walkthroughDiagram(slug) {
 const components = [
   { t: "client", label: "Client", kind: "client", hint: "Browser or mobile app making requests" },
   { t: "dns", label: "DNS", kind: "ext", hint: "Turns names into addresses; can steer traffic by region" },
-  { t: "cdn", label: "CDN", kind: "cdn", hint: "Edge caches close to users for static and media files" },
-  { t: "lb", label: "Load balancer", kind: "lb", hint: "Spreads requests across servers and skips dead ones" },
-  { t: "gateway", label: "API gateway + rate limiter", kind: "lb", hint: "Front door: auth, routing and rate limits" },
-  { t: "ws", label: "Realtime gateway", kind: "lb", hint: "Holds WebSocket / long-poll connections to push updates" },
+  { t: "cdn", label: "CDN", kind: "cdn", hint: "Edge caches close to users for static and media files", tech: [{ k: "cloudflare", label: "Cloudflare" }, { k: "cloudfront", label: "CloudFront" }, { k: "akamai", label: "Akamai" }] },
+  { t: "lb", label: "Load balancer", kind: "lb", hint: "Spreads requests across servers and skips dead ones", tech: [{ k: "l7", label: "L7 (HTTP)" }, { k: "l4", label: "L4 (TCP)" }] },
+  { t: "gateway", label: "API gateway + rate limiter", kind: "lb", hint: "Front door: auth, routing and rate limits", tech: [{ k: "envoy", label: "Envoy / Kong" }, { k: "apigw", label: "AWS API Gateway" }] },
+  { t: "ws", label: "Realtime gateway", kind: "lb", hint: "Holds WebSocket / long-poll connections to push updates", tech: [{ k: "websocket", label: "WebSockets" }, { k: "sse", label: "SSE / long polling" }] },
   { t: "app", label: "App servers", kind: "service", hint: "Stateless services running your business logic" },
-  { t: "cache", label: "Cache (Redis)", kind: "cache", hint: "In-memory key-value store for hot data and counters" },
-  { t: "sql", label: "SQL database", kind: "db", hint: "Relational, ACID transactions, joins (Postgres, MySQL)" },
-  { t: "replica", label: "Read replicas", kind: "db", hint: "Copies of the primary DB that serve reads" },
-  { t: "nosql", label: "NoSQL / wide-column DB", kind: "db", hint: "Huge scale, simple access patterns (Cassandra, DynamoDB)" },
-  { t: "blob", label: "Object storage", kind: "store", hint: "Cheap, durable storage for files and media (S3)" },
-  { t: "queue", label: "Message queue", kind: "queue", hint: "Buffers work between services (Kafka, SQS)" },
+  { t: "cache", label: "Cache (Redis)", kind: "cache", hint: "In-memory key-value store for hot data and counters", tech: [{ k: "redis", label: "Redis" }, { k: "memcached", label: "Memcached" }] },
+  { t: "sql", label: "SQL database", kind: "db", hint: "Relational, ACID transactions, joins (Postgres, MySQL)", tech: [{ k: "postgres", label: "PostgreSQL" }, { k: "mysql", label: "MySQL" }, { k: "aurora", label: "Amazon Aurora" }, { k: "cockroach", label: "CockroachDB" }, { k: "spanner", label: "Cloud Spanner" }] },
+  { t: "replica", label: "Read replicas", kind: "db", hint: "Copies of the primary DB that serve reads", tech: [{ k: "async", label: "Async replicas" }, { k: "sync", label: "Sync replica" }] },
+  { t: "nosql", label: "NoSQL / wide-column DB", kind: "db", hint: "Huge scale, simple access patterns (Cassandra, DynamoDB)", tech: [{ k: "cassandra", label: "Cassandra" }, { k: "scylla", label: "ScyllaDB" }, { k: "dynamodb", label: "DynamoDB" }, { k: "mongodb", label: "MongoDB" }, { k: "bigtable", label: "Bigtable" }] },
+  { t: "blob", label: "Object storage", kind: "store", hint: "Cheap, durable storage for files and media (S3)", tech: [{ k: "s3", label: "Amazon S3" }, { k: "gcs", label: "Cloud Storage" }, { k: "azure", label: "Azure Blob" }] },
+  { t: "queue", label: "Message queue", kind: "queue", hint: "Buffers work between services (Kafka, SQS)", tech: [{ k: "kafka", label: "Kafka" }, { k: "sqs", label: "SQS" }, { k: "rabbitmq", label: "RabbitMQ" }, { k: "pubsub", label: "Pub/Sub" }] },
   { t: "worker", label: "Workers", kind: "worker", hint: "Background jobs that consume from queues" },
   { t: "idgen", label: "ID generator", kind: "worker", hint: "Hands out unique IDs (Snowflake, ticket ranges)" },
-  { t: "search", label: "Search index", kind: "db", hint: "Full-text and fuzzy search (Elasticsearch)" },
-  { t: "geo", label: "Geo index (in memory)", kind: "cache", hint: "Answers 'what's near this point?' fast" },
+  { t: "search", label: "Search index", kind: "db", hint: "Full-text and fuzzy search (Elasticsearch)", tech: [{ k: "elastic", label: "Elasticsearch" }, { k: "opensearch", label: "OpenSearch" }] },
+  { t: "geo", label: "Geo index (in memory)", kind: "cache", hint: "Answers 'what's near this point?' fast", tech: [{ k: "redisgeo", label: "Redis GEO" }, { k: "h3", label: "H3 / S2 cells" }] },
   { t: "push", label: "Push / SMS / email provider", kind: "ext", hint: "Third parties: APNs, FCM, Twilio, SES" },
 ];
 
@@ -434,4 +434,72 @@ for (const s of scenarios) {
   }
 }
 
-export default { components, scenarios };
+
+// Capacity calculator: rough per-node capacities, editable on the page as assumptions.
+const profiles = {
+  lb: { l7: { rps: 25000, label: "L7" }, l4: { rps: 250000, label: "L4" } },
+  // writes/s per primary or node, reads/s per replica or node, TB per node, distributed = scales out by adding nodes
+  db: {
+    postgres: { label: "PostgreSQL", writes: 5000, reads: 10000, tb: 4, distributed: false },
+    mysql: { label: "MySQL", writes: 5000, reads: 10000, tb: 4, distributed: false },
+    aurora: { label: "Aurora", writes: 10000, reads: 15000, tb: 64, distributed: false },
+    cockroach: { label: "CockroachDB", writes: 2000, reads: 8000, tb: 2, distributed: true },
+    spanner: { label: "Spanner", writes: 1800, reads: 10000, tb: 4, distributed: true },
+    cassandra: { label: "Cassandra", writes: 10000, reads: 5000, tb: 2, distributed: true },
+    scylla: { label: "ScyllaDB", writes: 40000, reads: 20000, tb: 4, distributed: true },
+    dynamodb: { label: "DynamoDB", writes: 1000, reads: 3000, tb: 10, distributed: true, managed: true },
+    mongodb: { label: "MongoDB", writes: 5000, reads: 10000, tb: 2, distributed: true },
+    bigtable: { label: "Bigtable", writes: 10000, reads: 10000, tb: 5, distributed: true },
+  },
+};
+
+// dau, rpu = requests per user per day, peak = peak / average, edge = % served by CDN or edge,
+// cpuMs / respMs / mbReq = per request, util = target CPU %, reads = DB reads per request, hit = cache hit %,
+// recDay / recBytes / years / rf = new DB records, filesDay / fileMB = object storage,
+// jobsDay / jobCpuS = background work, conns = concurrent persistent connections
+const base = { dau: 1e6, rpu: 50, peak: 3, edge: 0, cpuMs: 20, respMs: 100, mbReq: 2, util: 60, size: "auto",
+  reads: 1, hit: 80, recDay: 1e6, recBytes: 1000, years: 5, rf: 3, filesDay: 0, fileMB: 1, jobsDay: 0, jobCpuS: 1, conns: 0 };
+const calc = {
+  "web-app": { dau: 1e6, rpu: 50, cpuMs: 20, respMs: 150, reads: 2, hit: 80, recDay: 1e6, recBytes: 1000, filesDay: 2e5, fileMB: 3, jobsDay: 2e5, jobCpuS: 2 },
+  "url-shortener": { dau: 1e7, rpu: 33, cpuMs: 5, respMs: 30, reads: 1, hit: 90, recDay: 3.3e6, recBytes: 500 },
+  "rate-limiter": { dau: 2e7, rpu: 100, cpuMs: 1, respMs: 5, reads: 0, hit: 0, recDay: 0, recBytes: 0 },
+  "chat-system": { dau: 5e7, rpu: 60, cpuMs: 4, respMs: 20, reads: 1, hit: 50, recDay: 2e9, recBytes: 200, conns: 2e7 },
+  "news-feed": { dau: 2e8, rpu: 20, cpuMs: 10, respMs: 80, reads: 1, hit: 95, recDay: 1e8, recBytes: 1000, filesDay: 2e7, fileMB: 0.5, jobsDay: 1e8, jobCpuS: 0.05 },
+  "video-streaming": { dau: 1e8, rpu: 30, cpuMs: 10, respMs: 60, reads: 1, hit: 90, recDay: 5e5, recBytes: 2000, filesDay: 5e5, fileMB: 600, jobsDay: 5e5, jobCpuS: 1800 },
+  "ride-sharing": { dau: 1e6, rpu: 21600, peak: 1.5, cpuMs: 0.5, respMs: 5, reads: 0.05, hit: 0, recDay: 2e7, recBytes: 500, conns: 1.5e6 },
+  "web-crawler": { dau: 0, rpu: 0, peak: 1.2, reads: 0, hit: 0, recDay: 3.3e7, recBytes: 300, years: 2, filesDay: 3.3e7, fileMB: 0.1, jobsDay: 3.3e7, jobCpuS: 0.3 },
+  "notification-system": { dau: 1e7, rpu: 1, peak: 10, cpuMs: 5, respMs: 20, reads: 2, hit: 90, recDay: 1e7, recBytes: 1000, years: 0.25, jobsDay: 1e7, jobCpuS: 0.05 },
+  typeahead: { dau: 1e8, rpu: 50, edge: 50, cpuMs: 0.5, respMs: 5, reads: 0, hit: 0, recDay: 0, recBytes: 0, jobsDay: 1, jobCpuS: 200000 },
+  "file-sync": { dau: 1e7, rpu: 100, cpuMs: 5, respMs: 40, reads: 1, hit: 60, recDay: 5e8, recBytes: 300, years: 3, filesDay: 5e8, fileMB: 1, conns: 5e6 },
+};
+
+// technology fit: best = small bonus when chosen, poor = small penalty when chosen (explicit choices only)
+const fit = {
+  "web-app": [{ t: "sql", best: ["postgres", "mysql", "aurora"], why: "A single-region relational database is the simple, proven choice at this scale." }],
+  "url-shortener": [{ t: "nosql", best: ["dynamodb", "cassandra", "scylla", "bigtable"], why: "Key-value lookups by code over billions of rows: a partitioned KV store fits perfectly." }],
+  "rate-limiter": [{ t: "cache", best: ["redis"], poor: { memcached: "Memcached has no Lua scripts or sorted sets, so atomic sliding-window checks across gateways get hard." }, why: "Redis gives atomic INCR, TTLs and Lua scripts for race-free counters." }],
+  "chat-system": [
+    { t: "nosql", best: ["cassandra", "scylla", "bigtable", "dynamodb"], why: "Wide-column stores handle billions of appends a day, partitioned by conversation." },
+    { t: "queue", best: ["kafka"], why: "Kafka keeps per-conversation order within a partition and can replay." },
+  ],
+  "news-feed": [
+    { t: "cache", best: ["redis"], poor: { memcached: "Memcached has no list type, and timelines are capped lists of post IDs." }, why: "Redis lists hold each user's timeline of post IDs." },
+    { t: "queue", best: ["kafka"], why: "A replayable log suits fan-out: workers can catch up after failures." },
+  ],
+  "video-streaming": [{ t: "queue", best: ["sqs", "rabbitmq", "pubsub", "kafka"], why: "Transcode jobs are independent tasks: any durable queue with retries works." }],
+  "ride-sharing": [{ t: "sql", best: ["postgres", "spanner", "cockroach", "aurora"], why: "Rides need transactions; PostGIS, Spanner or CockroachDB also handle geo and scale." }],
+  "web-crawler": [{ t: "queue", best: ["kafka"], why: "A durable, partitioned log makes a frontier that survives crashes and splits by host." }],
+  "notification-system": [
+    { t: "queue", best: ["sqs", "rabbitmq", "pubsub"], why: "Per-message acks, delays and dead-letter queues are exactly what sending needs." },
+    { t: "nosql", best: ["cassandra", "scylla", "dynamodb"], why: "The notification log is write-heavy and time-ordered." },
+  ],
+  typeahead: [{ t: "queue", best: ["kafka"], why: "Search logs stream through Kafka into the aggregation job." }],
+  "file-sync": [{ t: "sql", best: ["postgres", "mysql", "spanner", "cockroach", "aurora"], why: "Versioned commits need ACID transactions on the metadata." }],
+};
+
+for (const s of scenarios) {
+  s.calc = { ...base, ...(calc[s.id] || {}) };
+  s.fit = fit[s.id] || [];
+}
+
+export default { components, scenarios, profiles };

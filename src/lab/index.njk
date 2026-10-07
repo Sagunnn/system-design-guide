@@ -63,6 +63,65 @@ pageScripts: ["/assets/js/lab.js"]
     <span class="lab__tip">Click a line to remove it. Your canvas is saved in this browser.</span>
   </div>
 
+  <section class="calc" aria-labelledby="calc-title">
+    <h2 id="calc-title">Capacity calculator</h2>
+    <p class="section-lede">How big does this design need to be? Set the traffic and the work each request does; the calculator sizes the servers, load balancers, database, cache and workers. It reads your canvas too: the database and load balancer you picked, and whether there's a cache.</p>
+    <div class="calc__grid">
+      <form class="calc__form" data-calc-form onsubmit="return false">
+        <fieldset>
+          <legend>Traffic</legend>
+          <label class="calc__field"><span>Daily active users</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="dau"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Requests per user per day</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="rpu"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Peak ÷ average</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="peak"><span class="calc__unit">×</span></span></label>
+          <label class="calc__field"><span>Served by CDN / edge</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="edge"><span class="calc__unit">%</span></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Work per request</legend>
+          <label class="calc__field"><span>CPU time</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="cpuMs"><span class="calc__unit">ms</span></span></label>
+          <label class="calc__field"><span>Response time</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="respMs"><span class="calc__unit">ms</span></span></label>
+          <label class="calc__field"><span>Memory while in flight</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="mbReq"><span class="calc__unit">MB</span></span></label>
+          <label class="calc__field"><span>Target CPU use</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="util"><span class="calc__unit">%</span></span></label>
+          <label class="calc__field"><span>Server size</span><span class="calc__in"><select data-calc="size">
+            <option value="auto">Auto: pick for me</option>
+            <option value="2">2 vCPU · 4 GB</option>
+            <option value="4">4 vCPU · 8 GB</option>
+            <option value="8">8 vCPU · 16 GB</option>
+            <option value="16">16 vCPU · 32 GB</option>
+            <option value="32">32 vCPU · 64 GB</option>
+            <option value="64">64 vCPU · 128 GB</option>
+          </select></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Data</legend>
+          <label class="calc__field"><span>DB reads per request</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="reads"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Cache hit rate</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="hit"><span class="calc__unit">%</span></span></label>
+          <label class="calc__field"><span>New DB records per day</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="recDay"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Record size</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="recBytes"><span class="calc__unit">bytes</span></span></label>
+          <label class="calc__field"><span>Keep data for</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="years"><span class="calc__unit">years</span></span></label>
+          <label class="calc__field"><span>Copies of each record</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="rf"><span class="calc__unit">×</span></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Files, jobs and connections</legend>
+          <label class="calc__field"><span>New files per day</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="filesDay"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>File size</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="fileMB"><span class="calc__unit">MB</span></span></label>
+          <label class="calc__field"><span>Background jobs per day</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="jobsDay"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>CPU per job</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="jobCpuS"><span class="calc__unit">s</span></span></label>
+          <label class="calc__field"><span>Open connections (WebSockets)</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="conns"><span class="calc__unit"></span></span></label>
+        </fieldset>
+        <details class="calc__assume">
+          <summary>Assumptions</summary>
+          <label class="calc__field"><span>L7 load balancer, requests/s each</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="l7rps"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>L4 load balancer, requests/s each</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="l4rps"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Connections per realtime gateway</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="connsPerGw"><span class="calc__unit"></span></span></label>
+          <label class="calc__field"><span>Usable GB per Redis node</span><span class="calc__in"><input type="number" min="0" step="any" inputmode="decimal" data-calc="redisGB"><span class="calc__unit"></span></span></label>
+          <p class="calc__note">Database limits per node depend on the database you pick on the canvas (for example PostgreSQL ≈ 5k writes/s per primary, Cassandra ≈ 10k writes/s per node). They're rough planning numbers, not benchmarks.</p>
+        </details>
+        <p><button class="btn btn--ghost" type="button" data-calc-reset>Reset to this scenario's numbers</button></p>
+      </form>
+      <div class="calc__out" data-calc-out aria-live="polite"></div>
+    </div>
+  </section>
+
   <section class="lab__result" data-lab-result hidden aria-live="polite"></section>
 
   {%- for s in lab.scenarios %}

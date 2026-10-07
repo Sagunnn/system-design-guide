@@ -809,8 +809,74 @@ tr:last-child td { border-bottom: 0; }
   .lab__cols { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 520px) {
-  .lab-node { width: 108px; font-size: 12px; padding-right: 14px; }
+  .lab-node { width: 118px; font-size: 12px; padding-right: 14px; }
   .lab__rank { width: 70px; height: 70px; font-size: 34px; }
   .lab__score { font-size: 14px; }
 }
 .lab-cta { margin: 26px 0 0; padding: 12px 16px; background: var(--panel); border: 3px solid var(--shadow); border-left: 10px solid var(--berry); box-shadow: 4px 4px 0 var(--shadow); font-size: 15.5px; }
+
+/* technology picker and capacity badge on canvas boxes */
+.lab-node { gap: 4px; grid-template-columns: minmax(0, 1fr); }
+.lab-node__label { max-width: 100%; }
+.lab-node__tech {
+  width: 100%;
+  max-width: 100%;
+  padding: 1px 2px;
+  font: 600 11.5px/1.2 var(--sans);
+  color: var(--ink);
+  background: var(--panel);
+  border: 1.5px solid var(--k);
+  border-radius: 0;
+  cursor: pointer;
+}
+.lab-node.d-node--db .lab-node__tech, .lab-node.d-node--store .lab-node__tech { margin-bottom: 4px; }
+.lab-node__count {
+  position: absolute;
+  top: -11px;
+  right: -8px;
+  padding: 3px 5px;
+  font: 9px/1 var(--pixel);
+  color: var(--panel);
+  background: var(--k);
+  border: 2px solid var(--shadow);
+}
+.lab-node__count[hidden] { display: none; }
+
+/* --- Capacity calculator ------------------------------------------------------------------ */
+.calc { margin-top: 40px; }
+.calc h2 { font-size: 1.05rem; line-height: 1.6; color: var(--accent); }
+.calc__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
+.calc__form { padding: 16px 18px; background: var(--panel); border: 3px solid var(--shadow); box-shadow: 4px 4px 0 var(--shadow); }
+.calc__form fieldset { margin: 0 0 14px; padding: 0; border: 0; }
+.calc__form legend { margin-bottom: 8px; padding: 0; font: 9px/1.6 var(--pixel); text-transform: uppercase; color: var(--berry); }
+.calc__field { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; gap: 10px; padding: 4px 0; font-size: 14.5px; border-bottom: 1px dashed var(--line); }
+.calc__in { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; gap: 6px; }
+.calc__in select { grid-column: 1 / -1; }
+.calc__in input, .calc__in select {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 7px;
+  font: 19px/1.1 var(--screen);
+  color: var(--ink);
+  background: var(--bg);
+  border: 2px solid var(--shadow);
+  border-radius: 0;
+}
+.calc__unit { flex: none; font: 17px/1 var(--screen); color: var(--ink-faint); }
+.calc__assume { margin: 6px 0 12px; }
+.calc__assume summary { cursor: pointer; font: 9px/1.6 var(--pixel); text-transform: uppercase; color: var(--accent); }
+.calc__note { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-faint); }
+.calc__form .btn { padding: 10px 12px; }
+.calc__out { display: grid; gap: 12px; position: sticky; top: calc(var(--top) + 16px); }
+.calc__tile { padding: 12px 16px; background: var(--panel); border: 3px solid var(--shadow); border-left: 10px solid var(--accent); box-shadow: 4px 4px 0 var(--shadow); }
+.calc__k { margin: 0; font: 9px/1.6 var(--pixel); text-transform: uppercase; color: var(--accent); }
+.calc__v { margin: 4px 0 2px; font: 26px/1.1 var(--screen); color: var(--ink); }
+.calc__d { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-soft); }
+.calc__warn { margin: 0; padding: 10px 14px; font-size: 14.5px; background: color-mix(in srgb, var(--warn) 14%, var(--panel)); border: 3px solid var(--shadow); border-left: 10px solid var(--warn); }
+@media (max-width: 1100px) {
+  .calc__grid { grid-template-columns: minmax(0, 1fr); }
+  .calc__out { position: static; }
+}
+@media (max-width: 520px) {
+  .calc__field { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 6px 0; font-size: 14px; }
+}
