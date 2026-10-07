@@ -1,0 +1,21 @@
+{#- An animated "see it in action" demo. Expects `demo` (from src/_data/demos.js). Played by assets/js/demo.js. -#}
+<section class="demo" data-demo aria-label="{{ demo.title }}">
+  <div class="demo__head">
+    <h2 class="demo__title">{{ demo.title }}</h2>
+    <div class="demo__btns">
+      <button class="btn btn--berry" type="button" data-demo-play="good">▶ {{ demo.good.label }}</button>
+      <button class="btn" type="button" data-demo-play="bad">▶ {{ demo.bad.label }}</button>
+    </div>
+  </div>
+  <div class="demo__stage" data-demo-stage>
+    <svg class="demo__edges" aria-hidden="true" data-demo-edges></svg>
+    <p class="demo__idle" data-demo-idle>{{ demo.intro }}</p>
+  </div>
+  <div class="demo__meters">
+    {%- for m in demo.meters %}
+    <p class="demo__meter" data-meter="{{ m[0] }}"><span>{{ m[1] }}</span><b>–</b></p>
+    {%- endfor %}
+  </div>
+  <p class="demo__caption" aria-live="polite"><span class="demo__step"></span><span data-demo-text>Press a button above: one run where it goes well, one where it goes wrong.</span></p>
+  <script type="application/json" class="demo__data">{{ demo | dump | replace("</", "<\\/") | safe }}</script>
+</section>
