@@ -37,7 +37,7 @@ pageScripts: ["/assets/js/lab.js"]
       <p class="lab__tip">Drag onto the canvas, or tap to add.</p>
       <div class="lab__chips">
         {%- for c in lab.components %}
-        <button class="lab__chip d-node--{{ c.kind }}" type="button" data-type="{{ c.t }}" title="{{ c.hint }}">{{ c.label }}</button>
+        <button class="lab__chip d-node--{{ c.kind }}" type="button" data-type="{{ c.t }}" title="{{ c.hint }}">{{ c.icon | safe }}<span>{{ c.label }}</span></button>
         {%- endfor %}
       </div>
     </div>
@@ -118,7 +118,19 @@ pageScripts: ["/assets/js/lab.js"]
         </details>
         <p><button class="btn btn--ghost" type="button" data-calc-reset>Reset to this scenario's numbers</button></p>
       </form>
-      <div class="calc__out" data-calc-out aria-live="polite"></div>
+      <div class="calc__side">
+        <div class="guess" data-guess>
+          <p class="guess__title">Your estimate first</p>
+          <p class="guess__lede">How many of each will this design need at peak? Guess, then reveal. Way too many and it <b>blasts</b> (wasted money); way too few and it <b>melts down</b> (overloaded).</p>
+          <div class="guess__fields" data-guess-fields></div>
+          <div class="guess__btns">
+            <button class="btn btn--berry" type="button" data-guess-reveal>Reveal</button>
+            <button class="btn btn--ghost" type="button" data-guess-skip>Just show me</button>
+          </div>
+        </div>
+        <div class="calc__out" data-calc-out aria-live="polite" hidden></div>
+        <p class="guess__again" hidden><button class="btn btn--ghost" type="button" data-guess-again>Guess again</button></p>
+      </div>
     </div>
   </section>
 

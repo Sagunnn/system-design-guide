@@ -10,6 +10,7 @@
 // so the "best design" always matches the guide.
 
 import { readFileSync } from "node:fs";
+import icons from "./labIcons.js";
 
 function walkthroughDiagram(slug) {
   const md = readFileSync(new URL(`../practice/${slug}.md`, import.meta.url), "utf8");
@@ -496,6 +497,8 @@ const fit = {
   typeahead: [{ t: "queue", best: ["kafka"], why: "Search logs stream through Kafka into the aggregation job." }],
   "file-sync": [{ t: "sql", best: ["postgres", "mysql", "spanner", "cockroach", "aurora"], why: "Versioned commits need ACID transactions on the metadata." }],
 };
+
+for (const c of components) c.icon = icons[c.t];
 
 for (const s of scenarios) {
   s.calc = { ...base, ...(calc[s.id] || {}) };

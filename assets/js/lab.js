@@ -69,11 +69,11 @@
       el.setAttribute('aria-label', displayName(n) + '. Press Delete to remove.');
       el.style.left = n.x + 'px';
       el.style.top = n.y + 'px';
-      el.innerHTML = '<span class="lab-node__label"></span>' +
+      el.innerHTML = (c.icon || '') + '<span class="lab-node__label"></span>' +
         '<button class="lab-node__x" type="button" aria-label="Remove">×</button>' +
         '<span class="lab-node__out" title="Drag to another box to connect"></span>' +
         '<span class="lab-node__count" hidden></span>';
-      el.firstChild.textContent = displayName(n);
+      el.querySelector('.lab-node__label').textContent = displayName(n);
       if (c.tech) {
         var sel = document.createElement('select');
         sel.className = 'lab-node__tech';
@@ -85,7 +85,7 @@
           sel.appendChild(opt);
         });
         sel.value = n.tech || c.tech[0].k;
-        el.insertBefore(sel, el.children[1]);
+        el.insertBefore(sel, el.querySelector('.lab-node__x'));
       }
       canvas.appendChild(el);
     });
@@ -460,7 +460,7 @@
   }
 
   function compute(c) {
-    var r = { tiles: [], warn: [], counts: {} };
+    var r = { tiles: [], warn: [], counts: {}, answers: {} };
     var reqDay = c.dau * c.rpu;
     var avg = reqDay / 86400, peak = avg * c.peak;
     var appQps = peak * (1 - c.edge / 100);
@@ -474,19 +474,22 @@
       var ramGB = inflight * c.mbReq / 1024;
       var s = serversFor(cores, ramGB, c.size);
       r.counts.app = s.total;
-      r.tiles.push({ k: 'App servers', v: s.total + ' × ' + s.vcpu + ' vCPU · ' + s.ram + ' GB', d: s.n + ' needed + 1 spare · ' + fmt(cores) + ' cores of work at ' + Math.round(util * 100) + '% CPU · ' + fmt(inflight) + ' requests in flight' + (s.byRam ? ' (memory is the limit)' : '') });
+      r.answers.app = { n: s.total, label: 'App servers', types: ['app'], vcpu: s.vcpu };
+      r.tiles.push({ key: 'app', k: 'App servers', v: s.total + ' × ' + s.vcpu + ' vCPU · ' + s.ram + ' GB', d: s.n + ' needed + 1 spare · ' + fmt(cores) + ' cores of work at ' + Math.round(util * 100) + '% CPU · ' + fmt(inflight) + ' requests in flight' + (s.byRam ? ' (memory is the limit)' : '') });
       var lbTech = techOf('lb') || 'l7';
       var cap = lbTech === 'l4' ? c.l4rps : c.l7rps;
       var lbs = Math.max(2, Math.ceil(appQps / cap));
       r.counts.lb = lbs;
       r.counts.gateway = lbs;
-      r.tiles.push({ k: 'Load balancers', v: lbs + ' × ' + data.profiles.lb[lbTech].label, d: fmt(cap) + ' req/s each; at least 2 so one can fail' + (state.nodes.some(function (n) { return n.t === 'lb'; }) ? '' : ' · none on your canvas yet') });
+      r.answers.lb = { n: lbs, label: 'Load balancers', types: ['lb', 'gateway'] };
+      r.tiles.push({ key: 'lb', k: 'Load balancers', v: lbs + ' × ' + data.profiles.lb[lbTech].label, d: fmt(cap) + ' req/s each; at least 2 so one can fail' + (state.nodes.some(function (n) { return n.t === 'lb'; }) ? '' : ' · none on your canvas yet') });
     }
 
     if (c.conns > 0) {
       var gws = Math.ceil(c.conns / c.connsPerGw) + 1;
       r.counts.ws = gws;
-      r.tiles.push({ k: 'Realtime gateways', v: gws + ' servers', d: fmt(c.conns) + ' open connections at ' + fmt(c.connsPerGw) + ' each, + 1 spare' });
+      r.answers.ws = { n: gws, label: 'Realtime gateways', types: ['ws'] };
+      r.tiles.push({ key: 'ws', k: 'Realtime gateways', v: gws + ' servers', d: fmt(c.conns) + ' open connections at ' + fmt(c.connsPerGw) + ' each, + 1 spare' });
     }
 
     var hasCache = state.nodes.some(function (n) { return n.t === 'cache'; });
@@ -507,13 +510,15 @@
           .sort(function (a, b) { return b[0] - a[0]; })[0];
         var nodes = need[0];
         r.counts[dbType] = nodes;
-        r.tiles.push({ k: 'Database', v: prof.label + ': ' + nodes + ' nodes', d: (need[1] === 'one per copy' ? 'the minimum for ' + c.rf + ' copies' : need[1] + ' set the size') + ' · ≈' + fmt(prof.writes) + ' writes/s and ' + prof.tb + ' TB per node · ' + detail });
+        r.answers.db = { n: nodes, label: prof.label + ' nodes', types: [dbType] };
+        r.tiles.push({ key: 'db', k: 'Database', v: prof.label + ': ' + nodes + ' nodes', d: (need[1] === 'one per copy' ? 'the minimum for ' + c.rf + ' copies' : need[1] + ' set the size') + ' · ≈' + fmt(prof.writes) + ' writes/s and ' + prof.tb + ' TB per node · ' + detail });
       } else {
         var shards = Math.max(1, Math.ceil(peakWrites / prof.writes), Math.ceil(raw / 1e12 / prof.tb));
         var replicas = Math.max(1, Math.ceil(dbReads / shards / prof.reads));
         r.counts.sql = shards;
         r.counts.replica = replicas * shards;
-        r.tiles.push({ k: 'Database', v: prof.label + ': ' + (shards > 1 ? shards + ' shards, each 1 primary + ' : '1 primary + ') + replicas + ' replica' + (replicas > 1 ? 's' : ''), d: '≈' + fmt(prof.writes) + ' writes/s per primary, ' + fmt(prof.reads) + ' reads/s per replica, ' + prof.tb + ' TB per node · ' + detail });
+        r.answers.db = { n: shards * (1 + replicas), label: prof.label + ' machines (primaries + replicas)', types: ['sql', 'replica'] };
+        r.tiles.push({ key: 'db', k: 'Database', v: prof.label + ': ' + (shards > 1 ? shards + ' shards, each 1 primary + ' : '1 primary + ') + replicas + ' replica' + (replicas > 1 ? 's' : ''), d: '≈' + fmt(prof.writes) + ' writes/s per primary, ' + fmt(prof.reads) + ' reads/s per replica, ' + prof.tb + ' TB per node · ' + detail });
         if (shards > 1) r.warn.push('One ' + prof.label + ' primary can\'t take ' + fmt(peakWrites) + ' writes/s or ' + fmtBytes(raw) + ' on its own: shard it ' + shards + ' ways, or pick a distributed database (Cassandra, DynamoDB, Spanner).');
       }
     }
@@ -522,7 +527,8 @@
       var cacheGB = Math.max(1, 0.2 * reqDay * c.reads * Math.max(c.recBytes, 100) / 1e9);
       var cnodes = Math.ceil(cacheGB / c.redisGB);
       r.counts.cache = cnodes;
-      r.tiles.push({ k: 'Cache', v: (techOf('cache') === 'memcached' ? 'Memcached' : 'Redis') + ': ' + fmtBytes(cacheGB * 1e9) + ' → ' + cnodes + ' node' + (cnodes > 1 ? 's' : ''), d: '80/20 rule: hold 20% of a day\'s reads · ' + c.redisGB + ' GB usable per node (double it for replicas)' });
+      r.answers.cache = { n: cnodes, label: 'Cache nodes', types: ['cache'] };
+      r.tiles.push({ key: 'cache', k: 'Cache', v: (techOf('cache') === 'memcached' ? 'Memcached' : 'Redis') + ': ' + fmtBytes(cacheGB * 1e9) + ' → ' + cnodes + ' node' + (cnodes > 1 ? 's' : ''), d: '80/20 rule: hold 20% of a day\'s reads · ' + c.redisGB + ' GB usable per node (double it for replicas)' });
     } else if (dbReads > 20000) {
       r.warn.push(fmt(dbReads) + ' reads/s would hit the database directly. Add a cache to your design.');
     }
@@ -536,7 +542,8 @@
       var jobCores = c.jobsDay * c.jobCpuS / 86400 / util;
       var w = serversFor(jobCores, 0, c.size);
       r.counts.worker = w.total;
-      r.tiles.push({ k: 'Workers', v: w.total + ' × ' + w.vcpu + ' vCPU', d: fmt(c.jobsDay * c.jobCpuS / 3600) + ' CPU-hours of jobs a day · ' + fmt(jobCores) + ' cores busy on average' });
+      r.answers.worker = { n: w.total, label: 'Workers', types: ['worker'], vcpu: w.vcpu };
+      r.tiles.push({ key: 'worker', k: 'Workers', v: w.total + ' × ' + w.vcpu + ' vCPU', d: fmt(c.jobsDay * c.jobCpuS / 3600) + ' CPU-hours of jobs a day · ' + fmt(jobCores) + ' cores busy on average' });
     }
     if (!r.tiles.length || (reqDay === 0 && c.recDay === 0 && c.jobsDay === 0)) r.warn.push('Enter some traffic, data or jobs to size the system.');
     return r;
@@ -552,19 +559,144 @@
   function fillForm() {
     form.querySelectorAll('[data-calc]').forEach(function (inp) { inp.value = state.calc[inp.dataset.calc]; });
   }
+  /* ---- Guess, then reveal -------------------------------------------------------------------
+     Answers stay hidden until the user has guessed. On reveal: 2× too many → the box blasts (wasted
+     money), half or less → it melts down (overloaded), otherwise spot on / close. */
+  var guessBox = document.querySelector('[data-guess]');
+  var guessFields = document.querySelector('[data-guess-fields]');
+  var againP = document.querySelector('[data-guess-again]').parentNode;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var revealed = false, guesses = {}, guessesBy = {}, fieldKeys = '', last = null;
+  var USD_PER_VCPU_MONTH = 25;
+
+  function syncGuessFields(r) {
+    var keys = Object.keys(r.answers);
+    if (keys.join() === fieldKeys) return;
+    fieldKeys = keys.join();
+    guessFields.innerHTML = keys.length ? keys.map(function (k) {
+      return '<label class="calc__field"><span>' + esc(r.answers[k].label) + '</span><span class="calc__in"><input type="number" min="0" step="1" inputmode="numeric" data-guess-key="' + k + '" value="' + (guesses[k] || '') + '"><span class="calc__unit"></span></span></label>';
+    }).join('') : '<p class="calc__note">Nothing to size yet. Enter some traffic below.</p>';
+  }
+  function verdict(key, r) {
+    var g = guesses[key], a = r.answers[key];
+    if (!(g > 0) || !a) return null;
+    var ratio = g / a.n;
+    var v = { kind: 'close', g: g, a: a.n };
+    if (ratio >= 2) {
+      v.kind = 'over';
+      v.text = 'BOOM! You guessed ' + fmt(g) + '; it needs ' + fmt(a.n) + '. That\'s ' + fmt(g - a.n) + ' idle machines' +
+        (a.vcpu ? ', about $' + fmt((g - a.n) * a.vcpu * USD_PER_VCPU_MONTH) + ' a month of wasted money' : ' of wasted money') + '.';
+    } else if (ratio <= 0.5) {
+      v.kind = 'under';
+      v.text = 'MELTDOWN. ' + fmt(g) + ' can\'t carry the peak; it needs ' + fmt(a.n) + '. Requests would time out and pile up.';
+    } else if (ratio >= 0.75 && ratio <= 1.34) {
+      v.kind = 'spot';
+      v.text = 'Spot on. You guessed ' + fmt(g) + '; it needs ' + fmt(a.n) + '.';
+    } else {
+      v.text = 'Close: you guessed ' + fmt(g) + ', it needs ' + fmt(a.n) + ' (a bit ' + (ratio > 1 ? 'high' : 'low') + ').';
+    }
+    return v;
+  }
+
   function runCalc() {
     if (!state.calc) return;
-    var r = compute(state.calc);
-    out.innerHTML = r.tiles.map(function (x) {
-      return '<div class="calc__tile"><p class="calc__k">' + esc(x.k) + '</p><p class="calc__v">' + esc(x.v) + '</p><p class="calc__d">' + esc(x.d) + '</p></div>';
-    }).join('') + r.warn.map(function (w) { return '<p class="calc__warn">' + esc(w) + '</p>'; }).join('');
+    var r = last = compute(state.calc);
+    syncGuessFields(r);
+    var tally = { spot: 0, close: 0, over: 0, under: 0 }, any = false;
+    var tiles = r.tiles.map(function (x) {
+      var v = revealed && x.key && verdict(x.key, r);
+      if (v) { tally[v.kind]++; any = true; }
+      return '<div class="calc__tile' + (v ? ' is-' + v.kind : '') + '"' + (x.key ? ' data-key="' + x.key + '"' : '') + '>' +
+        '<p class="calc__k">' + esc(x.k) + '</p><p class="calc__v">' + esc(x.v) + '</p><p class="calc__d">' + esc(x.d) + '</p>' +
+        (v ? '<p class="calc__verdict">' + esc(v.text) + '</p>' : '') + '</div>';
+    }).join('');
+    var summary = any ? '<p class="calc__tally">Your estimates: ' + [['spot', 'spot on'], ['close', 'close'], ['over', 'blasted'], ['under', 'melted down']]
+      .filter(function (k) { return tally[k[0]]; }).map(function (k) { return tally[k[0]] + ' ' + k[1]; }).join(' · ') + '</p>' : '';
+    out.innerHTML = summary + tiles + r.warn.map(function (w) { return '<p class="calc__warn">' + esc(w) + '</p>'; }).join('');
+    out.hidden = !revealed;
+    guessBox.hidden = revealed;
+    againP.hidden = !revealed;
     canvas.querySelectorAll('.lab-node').forEach(function (el) {
       var n = nodeById(el.dataset.id), badge = el.querySelector('.lab-node__count');
-      var v = n && r.counts[n.t];
+      var v = revealed && n && r.counts[n.t];
       badge.hidden = !v;
       if (v) badge.textContent = '×' + v;
     });
   }
+
+  function fx(el, host, x, y, kind) {
+    var cls = { over: 'fx-blast', under: 'fx-melt', spot: 'fx-spot' }[kind];
+    if (!cls) return;
+    el.classList.remove('fx-blast', 'fx-melt', 'fx-spot', 'fx-charred');
+    void el.offsetWidth;                        // restart the animation
+    el.classList.add(cls);
+    var label = { over: 'BOOM!', under: 'OVERLOAD', spot: 'NICE!' }[kind];
+    var bits = [];
+    var text = document.createElement('span');
+    text.className = 'fx-text fx-text--' + kind;
+    text.textContent = label;
+    text.style.left = x + 'px';
+    text.style.top = y + 'px';
+    bits.push(text);
+    if (!reduceMotion && kind === 'over') {
+      var colours = ['#ffd447', '#ff8a2f', '#e0442f', '#1f2330', '#fff3b0'];
+      for (var i = 0; i < 20; i++) {
+        var a = Math.random() * Math.PI * 2, d = 45 + Math.random() * 85, s = 5 + Math.round(Math.random() * 5);
+        var b = document.createElement('span');
+        b.className = 'fx-bit';
+        b.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + s + 'px;height:' + s + 'px;background:' + colours[i % colours.length] +
+          ';--dx:' + Math.round(Math.cos(a) * d) + 'px;--dy:' + Math.round(Math.sin(a) * d) + 'px';
+        bits.push(b);
+      }
+      if (el.classList.contains('lab-node')) setTimeout(function () { el.classList.add('fx-charred'); }, 320);
+    }
+    if (!reduceMotion && kind === 'under') {
+      for (var j = 0; j < 7; j++) {
+        var sm = document.createElement('span');
+        sm.className = 'fx-smoke';
+        sm.style.cssText = 'left:' + (x - 30 + j * 10) + 'px;top:' + (y - 10) + 'px;animation-delay:' + (j * 120) + 'ms;--dx:' + Math.round(Math.random() * 24 - 12) + 'px';
+        bits.push(sm);
+      }
+    }
+    bits.forEach(function (b) { host.appendChild(b); });
+    setTimeout(function () { bits.forEach(function (b) { b.remove(); }); }, kind === 'under' ? 2400 : 1300);
+    setTimeout(function () { el.classList.remove(cls, 'fx-charred'); }, 4200);
+  }
+
+  function reveal() {
+    revealed = true;
+    runCalc();
+    var r = last;
+    Object.keys(r.answers).forEach(function (k, i) {
+      var v = verdict(k, r);
+      if (!v) return;
+      setTimeout(function () {
+        var tile = out.querySelector('[data-key="' + k + '"]');
+        if (tile) fx(tile, tile, tile.offsetWidth / 2, tile.offsetHeight / 2, v.kind);
+        state.nodes.filter(function (n) { return r.answers[k].types.indexOf(n.t) >= 0; }).forEach(function (n) {
+          var el = elFor(n.id);
+          if (el) fx(el, canvas, el.offsetLeft, el.offsetTop, v.kind);
+        });
+      }, i * 260);                              // one after another, like a results screen
+    });
+  }
+  guessFields.addEventListener('input', function (e) {
+    var k = e.target.dataset.guessKey;
+    if (!k) return;
+    var v = parseFloat(e.target.value);
+    guesses[k] = isFinite(v) && v > 0 ? Math.round(v) : 0;
+  });
+  guessFields.addEventListener('keydown', function (e) { if (e.key === 'Enter') reveal(); });
+  document.querySelector('[data-guess-reveal]').addEventListener('click', reveal);
+  document.querySelector('[data-guess-skip]').addEventListener('click', function () { revealed = true; runCalc(); });
+  document.querySelector('[data-guess-again]').addEventListener('click', function () {
+    revealed = false;
+    fieldKeys = '';
+    runCalc();
+    var first = guessFields.querySelector('input');
+    if (first) first.focus();
+  });
+
   form.addEventListener('input', function () { readForm(); save(); runCalc(); });
   document.querySelector('[data-calc-reset]').addEventListener('click', function () {
     state.calc = Object.assign({}, SCEN[state.id].calc, ASSUME);
@@ -576,6 +708,9 @@
     if (!SCEN[id]) id = data.scenarios[0].id;
     pick.value = id;
     load(id);
+    revealed = false;
+    fieldKeys = '';
+    guesses = guessesBy[id] = guessesBy[id] || {};
     document.querySelectorAll('[data-brief]').forEach(function (b) { b.hidden = b.dataset.brief !== id; });
     showModel(false);
     hideVerdict();
