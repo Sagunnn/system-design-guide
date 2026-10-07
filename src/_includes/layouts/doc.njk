@@ -32,6 +32,10 @@ layout: layouts/base.njk
     </aside>
     {%- endif %}
 
+    {%- if section == "practice" %}
+    <p class="lab-cta"><b>Try it yourself first?</b> <a href="/lab/?s={{ page.fileSlug }}">Build this design in the Design Lab</a> and get it rated, then read the walkthrough.</p>
+    {%- endif %}
+
     <div class="prose">
 {{ content | safe }}
     </div>

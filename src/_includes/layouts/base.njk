@@ -61,7 +61,8 @@
         {%- endfor %}
       </ol>
 
-      <p class="side__head">Review</p>
+      <p class="side__head">Practise &amp; review</p>
+      <a class="side__link{% if page.url == '/lab/' %} is-current{% endif %}" href="/lab/">Design Lab</a>
       <a class="side__link{% if page.url == '/flashcards/' %} is-current{% endif %}" href="/flashcards/">Flashcards &amp; Anki deck</a>
     </nav>
 
@@ -77,5 +78,8 @@
   </footer>
 
   <script src="{{ '/assets/js/guide.js' | v }}" defer></script>
+  {%- for s in pageScripts %}
+  <script src="{{ s | v }}" defer></script>
+  {%- endfor %}
 </body>
 </html>

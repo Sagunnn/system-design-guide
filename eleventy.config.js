@@ -150,6 +150,12 @@ export default function (eleventyConfig) {
   const block = (content) => md.render(content.replace(/^\n+|\n+$/g, "")).trim();
 
   eleventyConfig.addPairedShortcode("diagram", (spec, caption) => renderDiagram(spec, caption));
+  eleventyConfig.addFilter("diagram", (spec, caption) => renderDiagram(spec, caption));
+  // Design Lab: everything the browser needs to score a canvas (no model specs, those are pre-rendered)
+  eleventyConfig.addFilter("labJson", (lab) => {
+    const scenarios = lab.scenarios.map(({ model, notes, brief, ...rules }) => rules);
+    return JSON.stringify({ components: lab.components, scenarios }).replace(/<\//g, "<\\/");
+  });
 
   // {% callout "tip" | "warn" | "interview" | "think", "Title" %} … {% endcallout %}
   eleventyConfig.addPairedShortcode("callout", (content, kind, title) =>

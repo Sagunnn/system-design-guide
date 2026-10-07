@@ -1,0 +1,77 @@
+---
+layout: layouts/base.njk
+title: Design Lab
+description: Build a system design by dragging components onto a canvas for a real interview scenario, then get it rated with feedback and see the best design.
+section: lab
+permalink: /lab/
+pageScripts: ["/assets/js/lab.js"]
+---
+<div class="lab">
+  <p class="eyebrow">Practice · interactive</p>
+  <h1>Design Lab</h1>
+  <p class="lede">Pick a scenario, drag components onto the canvas and connect them. Then check your design: you'll get a rank, what you got right, what's missing and why, and the design an interviewer would hope to see.</p>
+
+  <div class="lab__bar">
+    <label class="visually-hidden" for="lab-scenario">Scenario</label>
+    <select class="fc-select lab__scenario" id="lab-scenario" data-lab-scenario>
+      {%- for s in lab.scenarios %}
+      <option value="{{ s.id }}">{{ s.title }} · {{ s.level }}</option>
+      {%- endfor %}
+    </select>
+    <button class="btn btn--berry" type="button" data-lab-check>Check my design</button>
+    <button class="btn btn--ghost" type="button" data-lab-model>Show the best design</button>
+    <button class="btn btn--ghost" type="button" data-lab-clear>Clear</button>
+  </div>
+
+  {%- for s in lab.scenarios %}
+  <div class="lab__brief" data-brief="{{ s.id }}"{% if not loop.first %} hidden{% endif %}>
+    <p class="lab__brief-title">The brief</p>
+    <ul>{% for b in s.brief %}<li>{{ b | md | safe }}</li>{% endfor %}</ul>
+    {%- if s.walkthrough %}<p class="lab__brief-link">Full walkthrough: <a href="{{ s.walkthrough }}">{{ s.title }}</a> (try the lab first!)</p>{% endif %}
+  </div>
+  {%- endfor %}
+
+  <div class="lab__work">
+    <div class="lab__palette" aria-label="Components">
+      <p class="lab__palette-title">Components</p>
+      <p class="lab__tip">Drag onto the canvas, or tap to add.</p>
+      <div class="lab__chips">
+        {%- for c in lab.components %}
+        <button class="lab__chip d-node--{{ c.kind }}" type="button" data-type="{{ c.t }}" title="{{ c.hint }}">{{ c.label }}</button>
+        {%- endfor %}
+      </div>
+    </div>
+
+    <div class="lab__canvas" data-lab-canvas aria-label="Design canvas">
+      <svg class="lab__edges" aria-hidden="true">
+        <defs><marker id="lab-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+        <g data-lab-edges></g>
+        <line class="lab__temp" data-lab-temp hidden/>
+      </svg>
+      <p class="lab__empty" data-lab-empty><span>Drag components here.<br>Then pull from a box's <b>●</b> handle to another box to connect them.</span></p>
+    </div>
+  </div>
+
+  <div class="lab__connect">
+    <span class="lab__connect-label">Connect</span>
+    <label class="visually-hidden" for="lab-from">From</label>
+    <select class="fc-select" id="lab-from" data-lab-from></select>
+    <span aria-hidden="true">→</span>
+    <label class="visually-hidden" for="lab-to">To</label>
+    <select class="fc-select" id="lab-to" data-lab-to></select>
+    <button class="btn btn--ghost" type="button" data-lab-link>Add link</button>
+    <span class="lab__tip">Click a line to remove it. Your canvas is saved in this browser.</span>
+  </div>
+
+  <section class="lab__result" data-lab-result hidden aria-live="polite"></section>
+
+  {%- for s in lab.scenarios %}
+  <section class="lab__model" data-model="{{ s.id }}" hidden>
+    <h2>The best design: {{ s.title }}</h2>
+    {{ s.model.spec | diagram(s.model.caption) | safe }}
+    <ul class="lab__notes">{% for n in s.notes %}<li>{{ n | md | safe }}</li>{% endfor %}</ul>
+    {%- if s.walkthrough %}<p><a class="btn" href="{{ s.walkthrough }}">Read the full walkthrough</a></p>{% endif %}
+  </section>
+  {%- endfor %}
+</div>
+<script id="lab-data" type="application/json">{{ lab | labJson | safe }}</script>
