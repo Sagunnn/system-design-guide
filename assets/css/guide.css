@@ -1018,3 +1018,48 @@ tr:last-child td { border-bottom: 0; }
 .feature__list .px-icon { width: 32px; height: 32px; margin-top: 2px; }
 .feature .demo { margin: 22px 0 0; box-shadow: 4px 4px 0 var(--shadow); }
 @media (max-width: 760px) { .feature__list { grid-template-columns: minmax(0, 1fr); } .feature { padding: 16px; } }
+
+/* --- Design Lab, highlighted in the top bar and sidebar -------------------------------------- */
+.top__lab {
+  --k: var(--k-service);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin-left: auto;
+  padding: 0 12px;
+  font: 9px/1 var(--pixel);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--panel);
+  background: var(--berry);
+  border: 3px solid var(--shadow);
+  box-shadow: 3px 3px 0 var(--shadow);
+  white-space: nowrap;
+}
+.top__lab .px-icon { width: 20px; height: 20px; --icon-ink: var(--shadow); --icon-lite: var(--panel); --k: #d9d6cc; }
+.top__lab:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+.top__lab.is-current { outline: 3px solid var(--mark); outline-offset: 2px; }
+.top__lab + .top__theme { margin-left: 0; }
+.side__lab {
+  --k: var(--k-service);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 4px;
+  padding: 10px 12px;
+  color: var(--panel);
+  text-decoration: none;
+  background: var(--berry);
+  border: 3px solid var(--shadow);
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+.side__lab .px-icon { width: 30px; height: 30px; --icon-ink: var(--shadow); --icon-lite: var(--panel); --k: #d9d6cc; }
+.side__lab b { display: block; font: 10px/1.5 var(--pixel); font-weight: 400; text-transform: uppercase; }
+.side__lab small { display: block; font-size: 13px; opacity: 0.9; }
+.side__lab:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+.side__lab.is-current { outline: 3px solid var(--mark); outline-offset: 2px; }
+@media (max-width: 900px) {
+  .top__lab span { display: none; }
+  .top__lab { padding: 0 8px; }
+}

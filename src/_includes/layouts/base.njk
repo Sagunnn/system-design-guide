@@ -38,6 +38,7 @@
       <input class="search__input" type="search" placeholder="Search topics and questions…  /" aria-label="Search the guide" autocomplete="off">
       <ul class="search__results" hidden></ul>
     </div>
+    <a class="top__lab{% if page.url == '/lab/' %} is-current{% endif %}" href="/lab/">{{ lab.icons.app | safe }}<span>Design Lab</span></a>
     <button class="top__theme" type="button" aria-label="Toggle dark mode">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
     </button>
@@ -46,6 +47,10 @@
   <div class="layout">
     <nav class="sidebar" id="sidebar" aria-label="Guide">
       <a class="side__link{% if page.url == '/' %} is-current{% endif %}" href="/">Home &amp; study plan</a>
+      <a class="side__lab{% if page.url == '/lab/' %} is-current{% endif %}" href="/lab/">
+        {{ lab.icons.app | safe }}
+        <span><b>Design Lab</b><small>Build, rate and size a design</small></span>
+      </a>
 
       <p class="side__head">Fundamentals <span class="side__count" data-progress="topic"></span></p>
       <ol class="side__list">
@@ -61,8 +66,7 @@
         {%- endfor %}
       </ol>
 
-      <p class="side__head">Practise &amp; review</p>
-      <a class="side__link{% if page.url == '/lab/' %} is-current{% endif %}" href="/lab/">Design Lab</a>
+      <p class="side__head">Review</p>
       <a class="side__link{% if page.url == '/flashcards/' %} is-current{% endif %}" href="/flashcards/">Flashcards &amp; Anki deck</a>
     </nav>
 
